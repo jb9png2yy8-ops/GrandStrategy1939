@@ -2,49 +2,53 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Grand Strategy 1939 v0.5</title>
+  <title>Grand Strategy 1939 v0.51</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {height:100%;margin:0;padding:0;background:#222;color:#fff;font-family:system-ui,sans-serif;}
     body {display:flex;flex-direction:column;min-height:100vh;}
-    .topbar {background:#111;padding:5px 0 0;display:flex;flex-direction:column;align-items:center;}
+    .topbar {background:#111;padding:5px 0 0;display:flex;flex-direction:column;align-items:center;z-index:2;}
     .resources {display:flex;gap:12px;font-size:.98em;justify-content:center;flex-wrap:wrap;}
     .panel-btns {display:flex;gap:8px;margin-bottom:5px;}
     .panel-btns button {font-size:.98em;padding:5px 10px;border:none;border-radius:5px;background:#444;color:#fff;}
-    .main {flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;}
+    .main {flex:1 1 auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;min-height:0;}
     #hexGrid {
-      display:grid;
+      flex:1 1 auto;
+      display: grid;
       grid-template-columns: repeat(4, 1fr);
       grid-template-rows: repeat(4, 1fr);
       gap: 0px;
-      justify-items: center;
-      align-items: center;
-      width:380px; max-width:98vw;
-      margin:16px auto 0;
-      background:#171719;
+      width: 100%;
+      height: 100%;
+      min-height:0; min-width:0;
+      margin:0;
+      background: #171719;
       border-radius:14px;
       box-shadow: 0 3px 13px #0005;
-      padding:14px 0 0 0;
       position:relative;
-    }
-    @media (max-width:480px) {
-      #hexGrid { width:98vw; max-width:98vw;padding:7px 0 0 0;}
+      padding: 0;
+      overflow: hidden;
+      align-items: stretch;
+      justify-items: stretch;
+      place-items: stretch;
+      transition: width .12s, height .12s;
     }
     .hex-btn {
-      width:82px;height:78px;
-      margin:0;padding:0;background:none;border:none;outline:none;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      position:relative;cursor:pointer;transition:filter .16s;
+      aspect-ratio: 82/78;
+      width: 100%;
+      height: 100%;
+      background: none; border: none; outline: none; margin:0; padding:0;
+      display: flex; flex-direction:column; align-items:center; justify-content: center;
+      position: relative; cursor:pointer; transition:filter .16s;
+      min-width:0; min-height:0; max-width:100vw; max-height:100vw;
     }
     .hex-btn.selected {filter:drop-shadow(0 0 8px #ffd);}
     .hex-btn.player {filter:drop-shadow(0 0 8px #4af);}
     .hex-btn.attack {filter:drop-shadow(0 0 8px #f44);}
-    .hex-country { /* страна */
-      width:82px;height:78px;position:absolute;left:0;top:0;pointer-events:none;z-index:1;
-    }
+    .hex-country {width:100%;height:100%;position:absolute;left:0;top:0;pointer-events:none;z-index:1;}
     .hex-label {z-index:2;position:relative;font-size:1em;font-weight:bold; color:#fff;user-select:none;}
     .hex-army {font-size:.95em;color:#dadada;}
-    .hex-bg {position:absolute;z-index:0;top:0;left:0;width:82px;height:78px;}
+    .hex-bg {position:absolute;z-index:0;top:0;left:0;width:100%;height:100%;}
     .log {
       position: fixed;z-index:1000;
       left:50%;top:22px;transform:translateX(-50%);
@@ -54,7 +58,7 @@
     .log.show {display:block;animation:fadein .18s;}
     @keyframes fadein {from{opacity:0;}to{opacity:1;}
     }
-    .bottom-panel {width:100%;display:flex;justify-content:center;padding:5px 0 8px;gap:7px;background:#191919;flex-wrap:wrap;}
+    .bottom-panel {width:100%;display:flex;justify-content:center;padding:5px 0 8px;gap:7px;background:#191919;flex-wrap:wrap;z-index:2;}
     .bottom-panel button {font-size:.97em;padding:7px 9px;border:none;border-radius:7px;background:#333;color:#fff;transition:background .2s;}
     .bottom-panel button:active,.bottom-panel button.blink {background:#55aee1!important;}
     .bottom-panel .cost {color:#aaa;font-size:.93em;}
@@ -75,12 +79,24 @@
     .startup select {font-size:1em;margin-bottom:9px;padding:7px;border-radius:7px;background:#111;color:#fff;border:none;}
     .startup-btn {font-size:1.05em;padding:10px 22px;margin-top:18px;border-radius:8px;background:#49c;border:none;color:#fff;}
     .startup .helper {margin-top:20px;opacity:0.5;max-width:260px;font-size:.98em;}
-    @media (max-width:440px){
-      .hex-btn,.hex-country,.hex-bg {width:66px;height:63px;}
-      #hexGrid{padding-top:6px;}
+    @media (max-width:800px){
+      .main{min-width:0;}
+      #hexGrid{min-width:0;}
+    }
+    @media (max-width:650px){
+      #hexGrid{
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+      }
+      .hex-label {font-size:.97em;}
+    }
+    @media (max-width:480px){
+      .main{min-width:0;}
+      #hexGrid{min-width:0;}
+      .hex-label{font-size:.96em;}
     }
     @media (max-width:370px){
-      .hex-btn,.hex-country,.hex-bg {width:50px;height:48px;}
+      .hex-label{font-size:.93em;}
     }
   </style>
 </head>
@@ -106,7 +122,7 @@
         <button type="submit" class="startup-btn">Начать игру</button>
     </form>
     <div class="helper">
-        Минимализм и быстрые реакции! Карта — шестигранники, перетаскивайте и увеличивайте карту, стройте империю.
+        Минимализм и быстрые реакции! Карта — шестигранники, стройте империю.<br>Карта полностью адаптируется под размер экрана.
     </div>
 </div>
 <div class="topbar" id="topbar" style="display:none;">
@@ -151,14 +167,14 @@
 <script>
 // --- Страны ---
 const countries = {
-    germany:{name:"Германия",color:"#bbb43b",x:1,y:1,start:{coins:120,resources:90,army:50,tech:35},bonus:"Каждые 2 хода +5 техника",ai:true},
-    france:{name:"Франция",color:"#337de7",x:0,y:2,start:{coins:110,resources:100,army:38,tech:28},bonus:"Сразу +1 завод, ежегодно +6 монет",ai:true},
+    germany:{name:"Германия",color:"#d3bc37",x:1,y:1,start:{coins:120,resources:90,army:50,tech:35},bonus:"Каждые 2 хода +5 техника",ai:true},
+    france:{name:"Франция",color:"#2252d6",x:0,y:2,start:{coins:110,resources:100,army:38,tech:28},bonus:"Сразу +1 завод, ежегодно +6 монет",ai:true},
     ussr:{name:"СССР",color:"#e63936",x:2,y:0,start:{coins:80,resources:140,army:55,tech:15},bonus:"Армия/техника на 20% дешевле",ai:true},
-    uk:{name:"Великобритания",color:"#76928c",x:1,y:3,start:{coins:105,resources:82,army:33,tech:32},bonus:"Флот: неуязвим к сухопутным атакам",ai:true},
-    italy:{name:"Италия",color:"#399e57",x:2,y:2,start:{coins:100,resources:77,army:34,tech:25},bonus:"+8 монет если не воюет",ai:true},
+    uk:{name:"Великобритания",color:"#b694c2",x:1,y:3,start:{coins:105,resources:82,army:33,tech:32},bonus:"Флот: неуязвим к сухопутным атакам",ai:true},
+    italy:{name:"Италия",color:"#f0ad49",x:2,y:2,start:{coins:100,resources:77,army:34,tech:25},bonus:"+8 монет если не воюет",ai:true},
     japan:{name:"Япония",color:"#f5d091",x:0,y:0,start:{coins:98,resources:84,army:44,tech:20},bonus:"+20% к набору армии",ai:true}
 };
-// neighbours for land/sea (for borders mapping)
+// Нормальные уникальные цвета (Франция не совпадает с морем, Италия не зеленая, UK — сиреневый).
 countries.germany.neighbors = ["france","ussr","italy"];
 countries.france.neighbors = ["germany","italy","uk"];
 countries.ussr.neighbors = ["germany","italy"];
@@ -192,18 +208,14 @@ const techTree = [
     {id:"super1",title:"Современное управление",desc:"Вся экономика +10%",cost:65,unlocks:[]}
 ];
 function getTechById(id){ return techTree.find(x=>x.id===id); }
-
 const hexGridSize = 4; // 4x4 сетка
 // Страны на позиции (x,y)
 const countryPos = {}, waterPos = [], borderPos = [];
 for(let code in countries){ countryPos[`${countries[code].x},${countries[code].y}`]=code; }
-
-// Заполняем пустоты: где страна соседствует, ставим зелёные (border), а остальное — море (water)
 for(let x=0;x<hexGridSize;x++) for(let y=0;y<hexGridSize;y++){
     let key=`${x},${y}`;
     if(!countryPos[key]){
-        let isBorder=false,isWater=false;
-        // Чекаем соседей по гексагону
+        let isBorder=false;
         let neighborOffsets = [
             [-1,0],[1,0],[0,-1],[0,1], [-1,1],[1,-1]
         ];
@@ -216,12 +228,17 @@ for(let x=0;x<hexGridSize;x++) for(let y=0;y<hexGridSize;y++){
         else waterPos.push([x,y]);
     }
 }
-
 // --- ОТРИСОВКА КАРТЫ ---
 function renderHexGrid(){
-    let grid=document.getElementById("hexGrid"); grid.innerHTML='';
+    let grid=document.getElementById("hexGrid");
+    grid.innerHTML='';
+    let gridW = grid.offsetWidth, gridH = grid.offsetHeight;
+    // Определим оптимальный размер hex
+    let minCellW = gridW/hexGridSize, minCellH = gridH/hexGridSize;
+    let sizeW = minCellW, sizeH = minCellH;
     for(let x=0;x<hexGridSize;x++) for(let y=0;y<hexGridSize;y++){
-        let btn=document.createElement('button');btn.className='hex-btn';btn.dataset.xy=`${x},${y}`;
+        let btn=document.createElement('button');
+        btn.className='hex-btn';btn.dataset.xy=`${x},${y}`;
         let ccode=countryPos[`${x},${y}`];
         let status='', army='', label='';
         if(ccode){
@@ -230,13 +247,13 @@ function renderHexGrid(){
             label=countries[ccode].name;
         }
         btn.className+=' '+status;
-        // Фон SVG-гекса: страна, граница, море
+        // Цвета
         let bgcolor, contour;
         if(ccode) { bgcolor=countries[ccode].color;contour='#222'; }
-        else if(borderPos.some(([xx,yy])=>xx==x&&yy==y)){ bgcolor='#399e57';contour='#217a25'; } // граница
-        else { bgcolor='#2781c7';contour='#133167'; } // море
+        else if(borderPos.some(([xx,yy])=>xx==x&&yy==y)){ bgcolor='#33bc5b';contour='#217a25'; }
+        else { bgcolor='#247ed6';contour='#13497a'; }
         btn.innerHTML=
-            `<svg class="hex-bg" viewBox="0 0 82 78">
+            `<svg class="hex-bg" viewBox="0 0 82 78" width="100%" height="100%">
               <polygon points="41,6 74,25 74,57 41,72 8,57 8,25"
                 style="fill:${bgcolor};stroke:${contour};stroke-width:3;" />
             </svg>
@@ -246,8 +263,10 @@ function renderHexGrid(){
         grid.appendChild(btn);
     }
 }
+// Костыль: пересчитываем карту при ресайзе (адаптив, чтобы hex тянулись)
+window.addEventListener("resize", ()=>setTimeout(renderHexGrid,80));
 
-// --- Лог/инфо (автоматическое исчезновение) ---
+// --- Остальной JS (без изменений от v0.5) ---
 let logTimeOut = 0;
 function showLog(txt, blinkBtn){
     let log=document.getElementById("log");
@@ -274,12 +293,10 @@ function selectOnMap(code){
         showLog(`Вы выбрали свою страну.<br>Стройте заводы, обучайте войска, производите технику, инвестируйте в технологии!`);
     }
 }
-// --- Панель ресурсов ---
 function showResources(){ let me=state[game.me];
     document.getElementById("resources").innerHTML=
         `Монеты: <b>${me.coins}</b> | Ресурсы: <b>${me.resources}</b> | Войска: <b>${me.army}</b> | Техника: <b>${me.tech}</b> | Заводы: <b>${me.factories}</b> <span style="margin-left:9px;color:#aaa;">Ход: ${game.turn}</span>`;
 }
-// --- КНОПКИ ---
 function initUI(){
     let buildBtn=document.getElementById("btnBuild"), armyBtn=document.getElementById("btnArmy"),
         techBtn=document.getElementById("btnTechProd"), nextBtn=document.getElementById("btnNext");
@@ -330,7 +347,6 @@ function initUI(){
     document.getElementById("btnWar").onclick=()=>{openWarPanel();};
     document.getElementById("closeWar").onclick=()=>{document.getElementById("warPanel").style.display="none";};
 }
-// --- Панель технологий ---
 function hasTech(id){ return state[game.me].techsUnlocked.includes(id);}
 function openTechPanel(){
     let me = state[game.me], html="";
@@ -359,7 +375,6 @@ function getRequirements(tech){
     let arr=[];techTree.forEach(parent=>{ if(parent.unlocks.includes(tech.id)) arr.push(parent.id); });
     return arr;
 }
-// --- Торговля ---
 function openTradePanel(){
     let html='';
     for(let c in countries){
@@ -400,7 +415,6 @@ window.makeTrade=function(cid, tradeType){
     showResources();
     showLog("Обмен завершён.");
 }
-// --- Война ---
 function openWarPanel(){
     let html='';
     for(let c in countries){
@@ -425,7 +439,6 @@ window.declareWar=function(cid){
     renderHexGrid();
     showResources();
 }
-// --- Следующий ход ---
 function nextTurn(){
     aiMove();
     for(let c in state){
@@ -507,7 +520,6 @@ function aiMove(){
         }
     }
 }
-// --- СТАРТ ---
 document.getElementById("startupForm").onsubmit=(e)=>{
     e.preventDefault();
     let c=document.getElementById("countryPick").value;
