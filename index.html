@@ -2,614 +2,396 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Grand Strategy 1939 v0.52</title>
+  <title>Grand Strategy 1939 Alpha 1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    html, body {height:100%;margin:0;padding:0;background:#222;color:#fff;font-family:system-ui,sans-serif;}
+    html, body {height:100%;margin:0;padding:0;background:#232834;color:#fff;font-family:system-ui,sans-serif;}
     body {display:flex;flex-direction:column;min-height:100vh;}
-    .topbar {
-      background:#111;
-      padding:16px 0 0;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:76px;
-      z-index:2;
-      position:relative;
-    }
-    .resources {display:flex;gap:12px;font-size:.98em;justify-content:center;flex-wrap:wrap;}
-    .panel-btns {display:flex;gap:8px;margin-bottom:5px;}
-    .panel-btns button {font-size:.98em;padding:5px 10px;border:none;border-radius:5px;background:#444;color:#fff;}
-    .main {flex:1 1 auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;min-height:0;}
-    #hexGrid {
-      flex:1 1 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(4, 1fr);
-      gap: 0px;
-      width: 100%;
-      height: 100%;
-      min-height:0; min-width:0;
-      margin:0;
-      background: #171719;
-      border-radius:14px;
-      box-shadow: 0 3px 13px #0005;
-      position:relative;
-      padding: 0;
-      overflow: hidden;
-      align-items: stretch;
-      justify-items: stretch;
-      place-items: stretch;
-      transition: width .12s, height .12s;
-    }
-    .hex-btn {
-      aspect-ratio: 82/78;
-      width: 100%;
-      height: 100%;
-      background: none; border: none; outline: none; margin:0; padding:0;
-      display: flex; flex-direction:column; align-items:center; justify-content: center;
-      position: relative; cursor:pointer; transition:filter .16s;
-      min-width:0; min-height:0; max-width:100vw; max-height:100vw;
-      box-sizing:border-box;
-    }
-    .hex-btn.selected {filter:drop-shadow(0 0 8px #ffd);}
-    .hex-btn.player {filter:drop-shadow(0 0 8px #4af);}
-    .hex-btn.attack {filter:drop-shadow(0 0 8px #f44);}
-    .hex-country {width:100%;height:100%;position:absolute;left:0;top:0;pointer-events:none;z-index:1;}
-    .hex-label {
-      z-index:2;position:relative;
-      font-size:1em;font-weight:bold; color:#fff;user-select:none;
-      text-shadow:0 0 3px #2228;
-      margin-bottom:1px;
-    }
-    .hex-info{
-      display:flex;flex-direction:column;align-items:center;
-      z-index:3;position:relative;font-size:.95em;line-height:1.08;
-    }
-    .hex-army, .hex-tech {font-size:.97em;color:#dadada;}
-    .hex-resources {
-      color:#cab; font-size:.91em; margin-top:0; opacity:0.68;
-    }
-    .hex-bg {position:absolute;z-index:0;top:0;left:0;width:100%;height:100%;}
-    .logbox {
-      position: fixed;
-      z-index:1000;
-      left:50%;
-      top:8px;
-      transform:translateX(-50%);
-      min-width:220px;
-      max-width:450px;
-      background: #242930f9;
-      color:#fff;
-      border-radius:14px;
-      font-size:1em;
-      text-align:center;
-      box-shadow: 0 3px 18px #000b;
-      padding:22px 25px 18px;
-      display:none;
-      transition:top .18s;
-    }
-    .logbox.show {display:block;}
-    .logbox .closer {
-      position:absolute;
-      right:10px;top:7px;
-      background:none;border:none;color:#fff;font-size:1.6em;line-height:1;cursor:pointer;z-index:2;
-      opacity:0.92;
-    }
-    .logbox .closer:active {opacity:0.66;}
-    .bottom-panel {width:100%;display:flex;justify-content:center;padding:5px 0 8px;gap:7px;background:#191919;flex-wrap:wrap;z-index:2;}
-    .bottom-panel button {font-size:.97em;padding:7px 9px;border:none;border-radius:7px;background:#333;color:#fff;transition:background .2s;}
-    .bottom-panel button:active,.bottom-panel button.blink {background:#55aee1!important;}
-    .bottom-panel .cost {color:#aaa;font-size:.93em;}
-    .tech-panel,.trade-panel,.war-panel {position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:20;background:rgba(18,21,25,0.92);display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding-top: 48px;}
-    .tech-close,.panel-close {position:absolute;top:11px;right:11px;color:#fff;font-size:1.4em;background:transparent;border:none;}
-    .tech-tree {display:flex;flex-direction:column;gap:16px;width:92%;max-width:350px;margin:0 auto;}
-    .tech-item {background:#263049;margin:0;border-radius:8px;padding:11px 12px;font-size:.98em;display:flex;align-items:center;justify-content:space-between;}
-    .tech-item span:first-child{font-weight:bold;}
-    .tech-item.locked {opacity:.5;}
-    .tech-item.unlocked {border:2px solid #57f75a;}
-    .tech-item.in-progress {border:2px dashed #57c;}
-    .trade-list,.war-list {width:94%;max-width:320px;margin-top:10px;}
-    .trade-country,.war-country {background:#29313d;border-radius:8px;padding:7px 8px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
-    .trade-country button,.war-country button {padding:5px 9px;font-size:.98em;border-radius:6px;border:none;background:#444;color:#fff;}
-    .startup {position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99;background:#10131B;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
-    .startup .version {font-size:1.28em;font-weight:bold;font-family:monospace;letter-spacing:2px;opacity:.74;margin-bottom:11px;}
-    .startup h1 {font-size:2em;}
-    .startup label {margin:10px 0 6px;display:block;}
-    .startup select {font-size:1em;margin-bottom:9px;padding:7px;border-radius:7px;background:#111;color:#fff;border:none;}
-    .startup-btn {font-size:1.05em;padding:10px 22px;margin-top:18px;border-radius:8px;background:#49c;border:none;color:#fff;}
-    .startup .helper {margin-top:20px;opacity:0.5;max-width:260px;font-size:.98em;}
-    @media (max-width:800px){
-      .main{min-width:0;}
-      #hexGrid{min-width:0;}
-    }
-    @media (max-width:650px){
-      #hexGrid{
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(4, 1fr);
-      }
-      .hex-label {font-size:.97em;}
-    }
-    @media (max-width:480px){
-      .main{min-width:0;}
-      #hexGrid{min-width:0;}
-      .hex-label{font-size:.96em;}
-      .logbox{min-width:120px;}
-    }
-    @media (max-width:370px){
-      .hex-label{font-size:.93em;}
-      .logbox{min-width:70px;font-size:.97em;}
+    .topbar {background:#181c22;padding:8px 0 0;display:flex;flex-direction:column;align-items:center;min-height:60px;}
+    .resources {display:flex;gap:16px;font-size:1.08em;justify-content:center;flex-wrap:wrap;}
+    .main {flex:1 1 auto;display:flex;flex-direction:row;align-items:stretch;justify-content:stretch;}
+    .sidebar {width:56px;background:#222a32;display:flex;flex-direction:column;align-items:center;padding:9px 0 7px;gap:17px;font-size:1.5em;min-width:56px;}
+    .midpanel {flex:1 1 auto;display:flex;flex-direction:column;align-items:stretch;}
+    .infopanel {width:220px;background:#232a38;display:flex;flex-direction:column;align-items:stretch;padding:7px 9px;}
+    .month {font-size:1.05em;text-align:center; font-weight:bold;}
+    .citylist {margin:0;margin-bottom:15px;}
+    .cityblock {background:#263348;padding:7px 4px 5px;border-radius:8px;margin-bottom:9px;}
+    .cityblock .name {font-weight:bold;}
+    .cityblock .spec {font-size:.96em;color:#aad;}
+    .cityblock .income {font-size:.98em;color:#eee;}
+    .cityblock .buildq {margin:3px 0;font-size:.95em;}
+    .cityblock .prodq {margin:3px 0;font-size:.95em;}
+    .cityblock .pop {font-size:.97em;color:#aaa;}
+    .cityblock .garn {font-size:.97em;color:#c9a;}
+    .queueitem {padding:2px 0;}
+    .bottompanel {width:100%;padding:13px 0 9px;background:#1b1d21;border-top:1px solid #24273d;text-align:center;}
+    .btn {padding:7px 13px;border-radius:8px;background:#3c5c7a;color:#fff;border:none;font-size:1em;margin:0 7px;}
+    .btn:active {background:#56aee1;}
+    .log {width:100%;min-height:42px;text-align:center;font-size:1.08em;color:#fec;background:#2a252e97;border-radius:7px;margin-top:4px;}
+    .startmenu,.settingsmenu {position:fixed;top:0;left:0;width:100vw;height:100vh;background:#192031e9;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    .startmenu h1 {font-size:2.2em;}
+    .startmenu label {display:block;margin:8px 0 6px;}
+    .startmenu select {font-size:1em;padding:6px;border-radius:7px;background:#191d2e;color:#fff;border:none;}
+    .startmenu button {font-size:1.09em;padding:10px 22px;margin-top:18px;border-radius:8px;background:#49c;border:none;color:#fff;}
+    .startmenu .ver {font-size:1.18em;opacity:0.7;font-family:monospace;margin-bottom:10px;}
+    .settingsmenu {display:none;font-size:1.1em;}
+    .settingsmenu label {margin-top:8px; margin-bottom:4px;}
+    @media (max-width:600px){
+      .main{flex-direction:column;}
+      .infopanel{width:98vw;max-width:98vw;}
+      .sidebar{width:44px;min-width:44px;font-size:1.25em;}
     }
   </style>
 </head>
 <body>
-<div class="startup" id="startup">
-    <div class="version">v0.52</div>
+<div class="startmenu" id="startMenu">
+    <div class="ver">Alpha 1 (0.1)</div>
     <h1>Grand Strategy 1939</h1>
-    <form id="startupForm">
-        <label for="countryPick">Ваша страна:</label>
-        <select id="countryPick">
-            <option value="germany">Германия</option>
-            <option value="france">Франция</option>
-            <option value="ussr">СССР</option>
-            <option value="uk">Великобритания</option>
-            <option value="italy">Италия</option>
-            <option value="japan">Япония</option>
-        </select>
-        <label for="goalPick">Цель игры:</label>
-        <select id="goalPick">
-            <option value="domination">Глобальное господство</option>
-            <option value="survive">Выжить 20 ходов</option>
-            <option value="economy">Построить сильную экономику</option>
-        </select>
-        <button type="submit" class="startup-btn">Начать игру</button>
-    </form>
-    <div class="helper">
-        Минимализм и быстрые реакции! Карта — шестигранники, стройте империю.<br>Карта полностью адаптируется под размер экрана.
+    <button onclick="startNewGame()">Новая игра</button>
+    <button onclick="continueGame()">Продолжить</button>
+    <button onclick="openSettings()">Настройки</button>
+</div>
+<div class="settingsmenu" id="settingsMenu">
+    <h2>Настройки</h2>
+    <label>Сложность:</label>
+    <select id="difficultyPick">
+      <option value="normal">Нормальная</option>
+      <option value="easy">Лёгкая</option>
+      <option value="hard">Жесткая</option>
+    </select>
+    <button onclick="closeSettings()" class="btn" style="margin-top:18px;">Закрыть</button>
+</div>
+<div class="topbar" id="topBar" style="display:none;">
+    <div class="month" id="monthText"></div>
+    <div class="resources" id="resPanel"></div>
+</div>
+<div class="main" id="mainPanel" style="display:none;">
+    <div class="sidebar">
+        <button class="btn" title="Государство" onclick="openPanel('state')">🏛</button>
+        <button class="btn" title="Города" onclick="openPanel('cities')">🏭</button>
+        <button class="btn" title="Армии" onclick="openPanel('armies')">⚔</button>
+        <button class="btn" title="Исследования" onclick="openPanel('tech')">🔬</button>
+        <button class="btn" title="Дипломатия" onclick="openPanel('diplo')">🤝</button>
+        <button class="btn" title="События" onclick="openPanel('events')">📜</button>
+        <button class="btn" title="Статистика" onclick="openPanel('stats')">📊</button>
+        <button class="btn" title="Настройки" onclick="openPanel('settings')">⚙</button>
     </div>
+    <div class="midpanel" id="midPanel"></div>
+    <div class="infopanel" id="infoPanel"></div>
 </div>
-<div class="topbar" id="topbar" style="display:none;">
-    <div class="resources" id="resources"></div>
-    <div class="panel-btns">
-        <button id="btnTech">Технологии</button>
-        <button id="btnTrade">Торговля</button>
-        <button id="btnWar">Война</button>
-    </div>
-</div>
-<main class="main">
-    <div id="hexGrid"></div>
-    <div class="logbox" id="logbox">
-      <button class="closer" id="logcloser" style="display:none;">&times;</button>
-      <div id="logtext"></div>
-    </div>
-</main>
-<div class="bottom-panel" id="bottomPanel" style="display:none;">
-    <button id="btnBuild">
-        Построить завод<span class="cost"> (35 монет, 25 рес., +1 завод)</span>
-    </button>
-    <button id="btnArmy">
-        Обучить войска<span class="cost"> (30 монет, 18 рес., +12 войск)</span>
-    </button>
-    <button id="btnTechProd">
-        Произвести технику<span class="cost"> (40 монет, 28 рес., +10 техники)</span>
-    </button>
-    <button id="btnNext">След. ход</button>
-</div>
-<!-- Панели -->
-<div class="tech-panel" id="techPanel">
-    <button class="tech-close" id="closeTech">&times;</button>
-    <div class="tech-tree" id="techTree"></div>
-</div>
-<div class="trade-panel" id="tradePanel" style="display:none;">
-    <button class="panel-close" id="closeTrade">&times;</button>
-    <h2>Торговля</h2>
-    <div class="trade-list" id="tradeList"></div>
-</div>
-<div class="war-panel" id="warPanel" style="display:none;">
-    <button class="panel-close" id="closeWar">&times;</button>
-    <h2>Объявление войны</h2>
-    <div class="war-list" id="warList"></div>
+<div class="bottompanel" id="bottomPanel" style="display:none;">
+    <button class="btn" id="btnEndTurn">Завершить ход</button>
 </div>
 <script>
-// --- Страны ---
+// СТРУКТУРА ДАННЫХ — модульная! 
+const GAME_VERSION = 'Alpha 1 (0.1)';
+const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const countries = {
-    germany:{name:"Германия",color:"#d3bc37",x:1,y:1,start:{coins:120,resources:90,army:50,tech:35},bonus:"Каждые 2 хода +5 техника",ai:true},
-    france:{name:"Франция",color:"#ffe14b",x:0,y:2,start:{coins:110,resources:100,army:38,tech:28},bonus:"Сразу +1 завод, ежегодно +6 монет",ai:true},
-    ussr:{name:"СССР",color:"#e63936",x:2,y:0,start:{coins:80,resources:140,army:55,tech:15},bonus:"Армия/техника на 20% дешевле",ai:true},
-    uk:{name:"Великобритания",color:"#b694c2",x:1,y:3,start:{coins:105,resources:82,army:33,tech:32},bonus:"Флот: неуязвим к сухопутным атакам",ai:true},
-    italy:{name:"Италия",color:"#f0ad49",x:2,y:2,start:{coins:100,resources:77,army:34,tech:25},bonus:"+8 монет если не воюет",ai:true},
-    japan:{name:"Япония",color:"#f5d091",x:0,y:0,start:{coins:98,resources:84,army:44,tech:20},bonus:"+20% к набору армии",ai:true}
+  france: {
+    name: "Франция", code: "france",
+    cities: [
+      {name:"Париж",pop:3100000,income:34,garrison:500,special:"исследования, экономика"},
+      {name:"Лион",pop:500000,income:21,garrison:180,special:"универсальный"},
+      {name:"Лилль",pop:220000,income:20,garrison:150,special:"промышленность"},
+      {name:"Марсель",pop:800000,income:22,garrison:200,special:"флот"},
+      {name:"Бордо",pop:270000,income:15,garrison:80,special:"логистика"}
+    ],
+    start: {money:120,materials:90,military:25,political:20},
+    armies:[],techs:[],ai:true
+  },
+  germany: {
+    name: "Германия", code: "germany",
+    cities: [
+      {name:"Берлин",pop:4100000,income:35,garrison:600,special:"столица"},
+      {name:"Мюнхен",pop:620000,income:28,garrison:210,special:"пехота"},
+      {name:"Гамбург",pop:1400000,income:27,garrison:220,special:"флот"},
+      {name:"Кёльн",pop:770000,income:24,garrison:140,special:"логистика"},
+      {name:"Франкфурт",pop:540000,income:20,garrison:120,special:"экономика"}
+    ],
+    start: {money:130,materials:92,military:28,political:19},
+    armies:[],techs:[],ai:true
+  }
+  // другие страны добавляются аналогично!
 };
-// Соседи
-countries.germany.neighbors = ["france","ussr","italy"];
-countries.france.neighbors = ["germany","italy","uk"];
-countries.ussr.neighbors = ["germany","italy"];
-countries.italy.neighbors = ["germany","france","ussr"];
-countries.uk.neighbors = [];
-countries.japan.neighbors = [];
-let game = {
-    me: null,
-    goal: null,
-    turn: 1,
-    maxTurn: 20,
-    mapSelected: null,
-    over: false,
-    victory: false,
-    war: [],
-    conquered: [],
-    economyScore:0
-};
-let state = {};
-function applyCountryBonuses(country,first=false){
-    if(first) { if(country==="france") state.france.factories +=1; }
-    if(country==="italy" && !game.war.includes("italy")) state.italy.coins +=8;
-    if(country==="germany" && game.turn%2==0) state.germany.tech +=5;
-    if(country==="japan") state.japan.army = Math.round(state.japan.army*1.0);
-}
 const techTree = [
-    {id:"industry1",title:"Индустриализация I",desc:"Заводы строятся дешевле (28 монет)",cost:30,unlocks:["army1"]},
-    {id:"army1",title:"Военное обучение",desc:"+20% к набору армии",cost:35,unlocks:["industry2"]},
-    {id:"industry2",title:"Индустриализация II",desc:"Заводы дают на 50% больше дохода",cost:50,unlocks:["tank1"]},
-    {id:"tank1",title:"Механизация войск",desc:"Дает +5 к армии при каждом производстве техники",cost:42,unlocks:["super1"]},
-    {id:"super1",title:"Современное управление",desc:"Вся экономика +10%",cost:65,unlocks:[]}
+  {id:"econ1",cat:"Экономика",title:"Экономические реформы",desc:"+10% доход",cost:20,duration:2},
+  {id:"mil1",cat:"Пехота",title:"Новое снаряжение",desc:"+10% гарнизон",cost:18,duration:2},
+  {id:"tank1",cat:"Танки",title:"Мехдивизии",desc:"Открывает производство танков",cost:22,duration:3}
 ];
-function getTechById(id){ return techTree.find(x=>x.id===id); }
-const hexGridSize = 4; // 4x4 сетка
-const countryPos = {}, waterPos = [], borderPos = [];
-for(let code in countries) countryPos[`${countries[code].x},${countries[code].y}`]=code;
-for(let x=0;x<hexGridSize;x++) for(let y=0;y<hexGridSize;y++){
-    let key=`${x},${y}`;
-    if(!countryPos[key]){
-        let isBorder=false;
-        let neighborOffsets = [
-            [-1,0],[1,0],[0,-1],[0,1], [-1,1],[1,-1]
-        ];
-        for(let n of neighborOffsets){
-            let nx=x+n[0], ny=y+n[1];
-            let nk=`${nx},${ny}`;
-            if(countryPos[nk]) isBorder=true;
-        }
-        if(isBorder) borderPos.push([x,y]);
-        else waterPos.push([x,y]);
-    }
+// ------------------ GAME STATE -----------------
+let game = null;
+let menuState = 'main';
+let lastPanel = 'cities';
+// ------------------ MENU LOGIC -----------------
+function startNewGame(){
+  document.getElementById("startMenu").innerHTML=
+    `<div class="ver">${GAME_VERSION}</div><h1>Grand Strategy 1939</h1>
+    <label>Страна:</label>
+    <select id="countrySelect"><option value="france">Франция</option><option value="germany">Германия</option></select>
+    <label>Кампания:</label>
+    <select id="campSelect"><option value="default">1939: Начало войны</option></select>
+    <label>Сложность:</label>
+    <select id="diffSelect"><option value="normal">Нормальная</option><option value="easy">Лёгкая</option><option value="hard">Жесткая</option></select>
+    <button onclick="launchGame()" style="margin-top:18px;">Начать игру</button>
+    <button onclick="resetMenu()" style="margin-top:12px;">← Назад</button>`;
 }
-// --- ВСПЛЫВАЮЩЕЕ ОКНО ----------------
-let logTimeout=0, logPermanent=false;
-function showLog(txt, btn, permanent=false){
-    // permanent - оставлять лог до ручного закрытия (старт игры) с крестиком.
-    let log=document.getElementById("logbox");
-    let logText=document.getElementById("logtext");
-    let closer=document.getElementById("logcloser");
-    logText.innerHTML=txt;
-    log.classList.add("show");
-    if(closer) closer.style.display=permanent?"block":"none";
-    logPermanent = permanent;
-    if(logTimeout) clearTimeout(logTimeout);
-    if(permanent) {
-        closer.onclick = function(){log.classList.remove("show");};
-        return;
-    }
-    logTimeout = setTimeout(()=>{log.classList.remove("show");}, Math.min(5900, 1700+txt.replace(/<[^>]*>/g,'').length*55));
-    if(btn){
-        btn.classList.add('blink');
-        setTimeout(()=>{btn.classList.remove('blink');},430);
-    }
+function continueGame(){
+  let saved = localStorage.getItem("gs1939save");
+  if(!saved){showMenuLog("Нет сохранения.");return;}
+  launchGame(saved);
 }
-function closeLogBox(){if(!logPermanent)document.getElementById("logbox").classList.remove("show");}
-window.addEventListener("click",(e)=>{if(e.target.id==="logbox"&&!logPermanent)closeLogBox();});
-
-// --- ОТРИСОВКА КАРТЫ ---
-function renderHexGrid(){
-    let grid=document.getElementById("hexGrid");
-    grid.innerHTML='';
-    for(let x=0;x<hexGridSize;x++) for(let y=0;y<hexGridSize;y++){
-        let btn=document.createElement('button');
-        btn.className='hex-btn';btn.dataset.xy=`${x},${y}`;
-        let ccode=countryPos[`${x},${y}`];
-        let status='', label='';
-        let content = '';
-        if(ccode){
-            status=(game.mapSelected==ccode?' selected':'')+(ccode==game.me?' player':'')+(game.war.includes(ccode)?' attack':'');
-            label=countries[ccode].name;
-            let army=state[ccode]?state[ccode].army:"--";
-            let tech=state[ccode]?state[ccode].tech:"--";
-            // Блок с армией и техникой всегда виден.
-            content+=`<div class='hex-info'><span class="hex-label">${label}</span>
-                <span class='hex-army'>⚔${army}&nbsp;&nbsp;<span class='hex-tech'>🛡${tech}</span></span>`;
-            // Для чужой страны – ресурсы и монеты маленьким шрифтом.
-            if(ccode!==game.me && state[ccode]){
-                content+=`<div class="hex-resources">💰${state[ccode].coins} | ⛏${state[ccode].resources}</div>`;
-            }
-            content+='</div>';
-        }
-        btn.className+=' '+status;
-        // Цвета
-        let bgcolor, contour;
-        if(ccode) { bgcolor=countries[ccode].color;contour='#222'; }
-        else if(borderPos.some(([xx,yy])=>xx==x&&yy==y)){ bgcolor='#33bc5b';contour='#217a25'; }
-        else { bgcolor='#247ed6';contour='#13497a'; }
-        btn.innerHTML=
-            `<svg class="hex-bg" viewBox="0 0 82 78" width="100%" height="100%">
-              <polygon points="41,6 74,25 74,57 41,72 8,57 8,25"
-                style="fill:${bgcolor};stroke:${contour};stroke-width:3;" />
-            </svg>
-            ${content}`;
-        btn.onclick=ccode?()=>selectOnMap(ccode):null;
-        grid.appendChild(btn);
-    }
+function openSettings(){
+  document.getElementById("settingsMenu").style.display='flex';
+  document.getElementById("startMenu").style.display='none';
 }
-window.addEventListener("resize", ()=>setTimeout(renderHexGrid,80));
-
-// --- Остальной JS (по факту v0.51, только showLog и карта поменялись) ---
-function selectOnMap(code){
-    game.mapSelected = code;
-    renderHexGrid();
-    let info = `<b>${countries[code].name}</b><br>
-    Войска: <b>${state[code]?state[code].army:"--"}</b><br>
-    Техника: <b>${state[code]?state[code].tech:"--"}</b>`;
-    if(code!==game.me && state[code]){
-        info += `<br>Монеты: <b>${state[code].coins}</b> <br>Ресурсы: <b>${state[code].resources}</b>`;
-    }
-    if(code!==game.me){
-        showLog(info);
-    }else{
-        showLog(`Вы выбрали свою страну.<br>Стройте заводы, обучайте войска, производите технику, инвестируйте в технологии!`);
-    }
+function closeSettings(){
+  document.getElementById("settingsMenu").style.display='none';
+  document.getElementById("startMenu").style.display='flex';
 }
-function showResources(){ let me=state[game.me];
-    document.getElementById("resources").innerHTML=
-        `Монеты: <b>${me.coins}</b> | Ресурсы: <b>${me.resources}</b> | Войска: <b>${me.army}</b> | Техника: <b>${me.tech}</b> | Заводы: <b>${me.factories}</b> <span style="margin-left:9px;color:#aaa;">Ход: ${game.turn}</span>`;
+function resetMenu(){
+  document.getElementById("startMenu").innerHTML=
+    `<div class="ver">${GAME_VERSION}</div><h1>Grand Strategy 1939</h1>
+    <button onclick="startNewGame()">Новая игра</button>
+    <button onclick="continueGame()">Продолжить</button>
+    <button onclick="openSettings()">Настройки</button>`;
 }
-function initUI(){
-    let buildBtn=document.getElementById("btnBuild"), armyBtn=document.getElementById("btnArmy"),
-        techBtn=document.getElementById("btnTechProd"), nextBtn=document.getElementById("btnNext");
-    buildBtn.onclick=()=>{
-        let me = state[game.me];
-        let cost = 35;
-        if(hasTech("industry1")) cost=28;
-        if(me.coins<cost||me.resources<25){
-            showLog("Недостаточно ресурсов для постройки завода.", buildBtn);return;
-        }
-        me.coins -= cost; me.resources -= 25; me.factories +=1;
-        showResources();
-        showLog(`Построен завод.<br>Заводы приносят монеты и ресурсы каждый ход.`, buildBtn);
+function openPanel(panel){
+  lastPanel = panel;
+  renderMidPanel();
+}
+// ------------------ GAME START -----------------
+function launchGame(saved){
+  document.getElementById("startMenu").style.display="none";
+  document.getElementById("settingsMenu").style.display="none";
+  document.getElementById("topBar").style.display="";
+  document.getElementById("mainPanel").style.display="";
+  document.getElementById("bottomPanel").style.display="";
+  if(saved){
+    game = JSON.parse(saved);
+    showLog("Игра загружена.");
+  } else {
+    let country = document.getElementById("countrySelect").value;
+    let campaign = document.getElementById("campSelect").value;
+    let diff = document.getElementById("diffSelect").value;
+    game = {
+      country,
+      campaign,
+      diff,
+      turn:1,
+      year:1939,
+      month:0,
+      res: {...countries[country].start},
+      cities: countries[country].cities.map(c=>({
+        ...c,
+        buildQ:[],prodQ:[],buildBusy:null,prodBusy:null
+      })),
+      techsUnlocked:[],
+      techInProgress:null,
+      armies:[],
+      log:"Новая игра началась!"
     };
-    armyBtn.onclick=()=>{
-        let me = state[game.me]; let costCoins=30, costRes=18; let amount=12;
-        if(hasTech("army1")||game.me=='japan') amount=15;
-        if(game.me=='ussr'){ costCoins=24; costRes=14;}
-        if(me.coins<costCoins||me.resources<costRes){
-            showLog("Недостаточно ресурсов для обучения армии.", armyBtn);return;
-        }
-        me.coins -= costCoins; me.resources -= costRes; me.army += amount;
-        showResources();
-        showLog(`Войска обучены (+${amount}).<br>Больше армии — сильнее в войне!`, armyBtn);
-    };
-    techBtn.onclick=()=>{
-        let me = state[game.me]; let costCoins=40, costRes=28; let added=10;
-        if(game.me=='ussr'){ costCoins=Math.round(costCoins*0.8); costRes=Math.round(costRes*0.8);}
-        if(hasTech("super1")) added=12;
-        if(me.coins<costCoins||me.resources<costRes){
-            showLog("Недостаточно ресурсов для производства техники.", techBtn);return;
-        }
-        me.coins -= costCoins; me.resources -= costRes; me.tech += added;
-        if(hasTech("tank1")){ me.army +=5; showLog(`Произведена техника (+${added}).<br>+5 армии за механизацию.`, techBtn);}
-        else { showLog(`Произведена техника (+${added}).<br>Техника нужна для исследований технологий.`, techBtn);}
-        showResources();
-    };
-    nextBtn.onclick=()=>{
-        nextBtn.classList.add('blink');
-        setTimeout(()=>{nextBtn.classList.remove('blink');},400);
-        nextTurn();
-        showLog(`Следующий ход начался – ход №${game.turn}`, nextBtn);
-    };
-    document.getElementById("btnTech").onclick=()=>{openTechPanel();};
-    document.getElementById("closeTech").onclick=()=>{document.getElementById("techPanel").style.display="none";};
-    document.getElementById("btnTrade").onclick=()=>{openTradePanel();};
-    document.getElementById("closeTrade").onclick=()=>{document.getElementById("tradePanel").style.display="none";};
-    document.getElementById("btnWar").onclick=()=>{openWarPanel();};
-    document.getElementById("closeWar").onclick=()=>{document.getElementById("warPanel").style.display="none";};
+    saveGame();
+  }
+  renderGame();
 }
-function hasTech(id){ return state[game.me].techsUnlocked.includes(id);}
-function openTechPanel(){
-    let me = state[game.me], html="";
-    techTree.forEach(tech=>{
-        let unlocked=me.techsUnlocked.includes(tech.id), inProg=(me.techInProgress==tech.id);
-        let locked=false;
-        if(!unlocked && !inProg){ let reqs=getRequirements(tech);locked=reqs.some(id=>!me.techsUnlocked.includes(id));}
-        html+=`<div class="tech-item${unlocked?' unlocked':''}${inProg?' in-progress':''}${locked?' locked':''}">
- <span>${tech.title}</span>
- <span>${unlocked?'🔓':'🔒'}<br/><small>${tech.desc}</small></span>`;
-        if(!unlocked && !inProg && !locked){ html+=`<button onclick="researchTech('${tech.id}')">Исследовать (${tech.cost} техники)</button>`;}
-        if(inProg) html+=`<span>Исследуется (${tech.cost} техники)</span>`;
-        html+="</div>";
-    });
-    document.getElementById("techTree").innerHTML=html;document.getElementById("techPanel").style.display="flex";
+// ----------------- SAVE --------------------------
+function saveGame(){
+  localStorage.setItem("gs1939save", JSON.stringify(game));
 }
-window.researchTech=function(id){
-    let me = state[game.me], tech = getTechById(id);
-    if(me.tech < tech.cost){ alert("Недостаточно техники"); return;}
-    me.tech -= tech.cost; me.techInProgress = id;
-    showLog(`Начато исследование: ${tech.title}.<br>Техника списана.`, document.getElementById("btnTech"));
-    openTechPanel();
+function showMenuLog(msg){
+  document.getElementById("startMenu").innerHTML+=`<div class="log">${msg}</div>`;
 }
-function getRequirements(tech){
-    if(!techTree.find(t=>t.unlocks.includes(tech.id))) return [];
-    let arr=[];techTree.forEach(parent=>{ if(parent.unlocks.includes(tech.id)) arr.push(parent.id); });
-    return arr;
+// ---------------- RENDERING ----------------------
+function renderGame(){
+  document.getElementById("monthText").innerText=
+    months[game.month]+" "+game.year+", "+countries[game.country].name;
+  renderResPanel();
+  renderMidPanel();
+  renderInfoPanel();
+  showLog(game.log||'',true);
 }
-function openTradePanel(){
-    let html='';
-    for(let c in countries){
-        if(c==game.me||game.conquered.includes(c)||game.war.includes(c)) continue;
-        if(game.war.includes(c)) continue;
-        html+=`<div class="trade-country"><span><b>${countries[c].name}</b></span>
-        <button onclick="tradeWith('${c}')">Торговать</button></div>`;
-    }
-    if(!html) html="<div style='color:#aaa;text-align:center;'>Нет стран для торговли</div>";
-    document.getElementById("tradeList").innerHTML=html;
-    document.getElementById("tradePanel").style.display="flex";
+function renderResPanel(){
+  let r=game.res;
+  document.getElementById("resPanel").innerHTML=
+    `💰 <b>${r.money}</b> | ⛏ <b>${r.materials}</b> | ⚔ <b>${r.military}</b> | 🏛 <b>${r.political}</b>`;
 }
-window.tradeWith=function(cid){
-    let tradeTypes = [
-        { send:"coins", recv:"resources", label:"Обменять 15 монет на 18 ресурсов" },
-        { send:"resources", recv:"coins", label:"Обменять 20 ресурсов на 15 монет" }
-    ];
-    let buttons = tradeTypes.map((t,i)=>`<button onclick="makeTrade('${cid}',${i})">${t.label}</button>`).join("<br/>");
-    document.getElementById("tradeList").innerHTML =
-    `<div style="text-align:center;">
-     <b>${countries[cid].name}</b> выбран.<br><br>
-     ${buttons}<br><button onclick="openTradePanel()" style="margin-top:10px;">← Назад к списку</button>
+function renderMidPanel(){
+  let el=document.getElementById("midPanel");
+  switch(lastPanel){
+    case 'cities': renderCitiesMid(el); break;
+    case 'state': el.innerHTML=`<div style='font-size:1.16em;padding:14px;'>Государство: ${countries[game.country].name}<br>Ресурсы: <br>💰${game.res.money} ⛏${game.res.materials} ⚔${game.res.military} 🏛${game.res.political}</div>`; break;
+    case 'tech': renderTechMid(el); break;
+    case 'armies': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Армии: пока не реализовано</div>";break;
+    case 'diplo': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Дипломатия: пока не реализовано</div>";break;
+    case 'events': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>События: пока не реализовано</div>";break;
+    case 'stats': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Статистика: пока не реализовано</div>";break;
+    case 'settings': openSettings(); break;
+    default: renderCitiesMid(el);
+  }
+}
+function renderCitiesMid(el){
+  let html = "<h2 style='margin-top:5px;'>Города</h2><div class='citylist'>";
+  game.cities.forEach((city,i)=>{
+    html+=`<div class='cityblock'>
+      <span class="name">${city.name}</span> <span class="pop">👥${city.pop}</span><br>
+      <span class="income">💰${city.income}/мес</span> <span class="garn">⚔${city.garrison} гарнизон</span>
+      <br><span class="spec">${city.special}</span>
+      <div class="buildq">
+      Стройка: ${city.buildBusy?`<b>${city.buildBusy.name} (${city.buildBusy.left}м)</b>`:"—"}
+      <br>Очередь: ${city.buildQ.map(q=>`<span class="queueitem">${q.name} (${q.time}м)</span>`).join(', ')}
+      <br><button class="btn" onclick="addBuild(${i})">+Стройка</button>
+      </div>
+      <div class="prodq">
+      Производство: ${city.prodBusy?`<b>${city.prodBusy.name} (${city.prodBusy.left}м)</b>`:"—"}
+      <br>Очередь: ${city.prodQ.map(q=>`<span class="queueitem">${q.name} (${q.time}м)</span>`).join(', ')}
+      <br><button class="btn" onclick="addProd(${i})">+Производство</button>
+      </div>
     </div>`;
+  });
+  html+="</div>";
+  el.innerHTML=html;
 }
-window.makeTrade=function(cid, tradeType){
-    let me=state[game.me], other=state[cid];
-    let trade=[
-        {send:"coins",recv:"resources",sendA:15,recvA:18},
-        {send:"resources",recv:"coins",sendA:20,recvA:15}
-    ][tradeType];
-    if(me[trade.send]<trade.sendA){
-        alert("Недостаточно ресурсов для обмена!");openTradePanel();return;
+function renderTechMid(el){
+  let me = game.techsUnlocked, inPr = game.techInProgress;
+  let html = "<h2>Технологии</h2><div>";
+  techTree.forEach(tech=>{
+    let unlocked = me.includes(tech.id), inprog=(inPr&&inPr.id==tech.id);
+    html+=`<div style="margin:4px 0;padding:7px;border-radius:7px;background:#193;color:${unlocked?'#ffe':'#fff'};">
+      <b>${tech.title}</b> <span style="opacity:.7;font-size:.97em;">(${tech.cat})</span><br>
+      <small>${tech.desc}</small><br>
+      ${unlocked?'<span>Открыта</span>':inprog?`<span>В процессе (${inPr.left}м)</span>`:`<button class="btn" onclick="startTech('${tech.id}')">Исследовать (${tech.cost}⚔, ${tech.duration}мес)</button>`}
+      </div>`;
+  });
+  html+="</div>";
+  el.innerHTML = html;
+}
+function renderInfoPanel(){
+  let el=document.getElementById('infoPanel');
+  el.innerHTML=
+    `<div style="font-size:1.16em;margin-bottom:8px;">Информация<br><b>${countries[game.country].name}</b></div>
+    <div>Ход: <b>${game.turn}</b></div>
+    <div>Месяц: <b>${months[game.month]} ${game.year}</b></div>
+    <div>Сложность: <b>${game.diff}</b></div>
+    <div>Текущая технология: ${game.techInProgress?game.techInProgress.title+' ('+game.techInProgress.left+'мес)':'—'}</div>
+    <div>Кампания: <b>${game.campaign}</b></div>`;
+}
+function showLog(msg,panel){
+  let l=document.getElementById('midPanel');
+  if(panel) l.innerHTML+='<div class="log">'+msg+'</div>';
+  else {
+    let logs=document.querySelectorAll(".log");
+    for(let lg of logs) lg.remove();
+    let el=document.getElementById('mainPanel');
+    let logDiv=document.createElement("div");logDiv.className="log";logDiv.innerHTML=msg;
+    el.appendChild(logDiv);
+    setTimeout(()=>{logDiv.remove();},3500);
+  }
+}
+// ----------------- BUILD / PRODUCE -----------------
+const buildOptions = [
+  {name:"Гражданский завод",cost:22,time:2,effect:"💰+8/мес"},
+  {name:"Военный завод",cost:28,time:3,effect:"⚔+4/мес"},
+  {name:"Укрепления",cost:13,time:2,effect:"Защита"}
+];
+const prodOptions = [
+  {name:"Пехотная дивизия",cost:12,time:2,need:"—"},
+  {name:"Танковая дивизия",cost:21,time:3,need:"tank1"},
+  {name:"Артиллерия",cost:14,time:2,need:"mil1"}
+];
+function addBuild(i){
+  let city=game.cities[i];
+  let optList = buildOptions.map((b,j)=>
+    `<button class="btn" onclick="chooseBuild(${i},${j})">${b.name} (${b.cost}⛏, ${b.time}м)</button>`
+  ).join('<br>')
+  showLog(`<b>Выберите объект для строительства в ${city.name}:</b><br>${optList}`,true);
+}
+function chooseBuild(i,j){
+  let city=game.cities[i], opt=buildOptions[j];
+  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!',true);return;}
+  game.res.materials-=opt.cost;
+  city.buildQ.push({name:opt.name,time:opt.time,left:opt.time,effect:opt.effect});
+  showLog('Стройка добавлена.',true);renderGame();
+  saveGame();
+}
+function addProd(i){
+  let city=game.cities[i];
+  let optList = prodOptions.map((b,j)=>
+    b.need&&(!game.techsUnlocked.includes(b.need))?'':`<button class="btn" onclick="chooseProd(${i},${j})">${b.name} (${b.cost}⛏, ${b.time}м)</button>`
+  ).join('<br>');
+  showLog(`<b>Выберите тип войск для производства в ${city.name}:</b><br>${optList||'Нет вариантов'}<br>`,true);
+}
+function chooseProd(i,j){
+  let city=game.cities[i], opt=prodOptions[j];
+  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!',true);return;}
+  game.res.materials-=opt.cost;
+  city.prodQ.push({name:opt.name,time:opt.time,left:opt.time});
+  showLog('Производство добавлено.',true);renderGame();
+  saveGame();
+}
+// -------------------- TECH ---------------------------
+function startTech(id){
+  let tech = techTree.find(t=>t.id==id);
+  if(game.res.military<tech.cost){showLog('Недостаточно военных очков.',true);return;}
+  game.res.military-=tech.cost;
+  game.techInProgress = {id:tech.id,title:tech.title,left:tech.duration};
+  showLog('Исследование началось: '+tech.title,true);renderGame();
+  saveGame();
+}
+function processTech(){
+  if(game.techInProgress){
+    game.techInProgress.left--;
+    if(game.techInProgress.left<=0){
+      game.techsUnlocked.push(game.techInProgress.id);
+      showLog('Открыта технология: '+game.techInProgress.title,true);
+      game.techInProgress=null;
     }
-    me[trade.send]-=trade.sendA;me[trade.recv]+=trade.recvA;
-    other[trade.send]+=trade.sendA;
-    other[trade.recv]-=Math.min(other[trade.recv],trade.recvA);
-    document.getElementById("tradePanel").style.display="none";
-    showResources();
-    showLog("Обмен завершён.");
+  }
 }
-function openWarPanel(){
-    let html='';
-    for(let c in countries){
-        if(c==game.me||game.conquered.includes(c)) continue;
-        if(game.war.includes(c)) continue;
-        let canAttack=false;
-        if(countries[game.me].neighbors.includes(c)) canAttack=true;
-        if(countries[c].neighbors.length==0) canAttack=true;
-        if(canAttack){
-            html+=`<div class="war-country"><span><b>${countries[c].name}</b></span>
-            <button onclick="declareWar('${c}')">Атаковать</button></div>`;
+// ------------- END TURN ------------------
+document.getElementById("btnEndTurn").onclick=()=>{
+  for(let c of game.cities){
+    // Строительство
+    if(!c.buildBusy && c.buildQ.length>0){
+      c.buildBusy = c.buildQ.shift();
+    }
+    if(c.buildBusy){
+      c.buildBusy.left--;
+      if(c.buildBusy.left<=0){
+        showLog(c.name+": завершена стройка "+c.buildBusy.name,true);
+        if(c.buildBusy.effect && c.buildBusy.effect.indexOf("💰")!=-1){
+          let plus=parseInt(c.buildBusy.effect.match(/(\+[\d]+)/)?c.buildBusy.effect.match(/(\+[\d]+)/)[1]:8);
+          c.income+=plus;
         }
+        c.buildBusy=null;
+      }
     }
-    if(!html) html="<div style='color:#aaa;text-align:center;'>Нет стран для атаки</div>";
-    document.getElementById("warList").innerHTML=html;
-    document.getElementById("warPanel").style.display="flex";
-}
-window.declareWar=function(cid){
-    game.war.push(cid);
-    document.getElementById("warPanel").style.display="none";
-    showLog("Вы объявили войну стране: "+countries[cid].name);
-    renderHexGrid();
-    showResources();
-}
-function nextTurn(){
-    aiMove();
-    for(let c in state){
-        if(game.conquered.includes(c)) continue;
-        let country = state[c];
-        if(!country.factories) country.factories=1;
-        let inc = 7*country.factories;
-        if(c==game.me && hasTech("industry2")) inc = Math.round(inc*1.5);
-        if(c=="france") country.coins+=6;
-        country.coins += inc;
-        country.resources += 9*country.factories;
-        if(c=="italy" && !game.war.includes("italy")) country.coins+=8;
-        if(c=="germany"&&game.turn%2===0){country.tech+=5;}
+    // Производство
+    if(!c.prodBusy && c.prodQ.length>0){
+      c.prodBusy = c.prodQ.shift();
     }
-    let me=state[game.me];
-    if(me.techInProgress){
-        me.techsUnlocked.push(me.techInProgress);
-        showLog(`Исследование завершено: ${getTechById(me.techInProgress).title}`, document.getElementById("btnTech"));
-        me.techInProgress=null;
+    if(c.prodBusy){
+      c.prodBusy.left--;
+      if(c.prodBusy.left<=0){
+        showLog(c.name+": произведена "+c.prodBusy.name,true);
+        // TODO: army add logic
+        c.prodBusy=null;
+      }
     }
-    processWar();
-    applyCountryBonuses(game.me);
-    if(checkVictoryOrDefeat()) return;
-    game.turn++;
-    if(game.goal=='survive' && game.turn>game.maxTurn) {
-        game.over=true; game.victory=true;
-        showLog("Поздравляем! Вы выжили 20 ходов и победили!", null, true);
-        return;
-    }
-    showResources();
-    renderHexGrid();
-}
-function checkVictoryOrDefeat(){
-    if(game.goal=="domination" && game.conquered.length>=5){
-        showLog("Глобальное господство! Все страны покорены.", null, true);
-        game.victory=true; game.over=true; return true;
-    }
-    if(game.goal=="economy" && state[game.me].coins>450){
-        showLog("Ваша экономика стала самой сильной! Победа.", null, true);
-        game.victory=true; game.over=true; return true;
-    }
-    if(state[game.me].army<=0){
-        showLog("Ваша страна захвачена. Игра окончена.", null, true);
-        game.victory=false; game.over=true; return true;
-    }
-    return false;
-}
-function processWar(){
-    let me=state[game.me];
-    for(let i=0;i<game.war.length;i++){
-        let enemyCode=game.war[i], en=state[enemyCode];
-        if(game.conquered.includes(enemyCode)) continue;
-        let armySelf=me.army+Math.floor(me.tech/7), armyEn=en.army+Math.floor(en.tech/7);
-        if(armySelf<=0){
-            showLog("Вы проиграли бой, армия уничтожена. Вы потерпели поражение!", null, true);
-            state[game.me].army=0;game.over=true;return;
-        }
-        if(armyEn<=0){
-            game.conquered.push(enemyCode);
-            showLog("Вы победили: "+countries[enemyCode].name+" захвачена!", null, true);
-            me.coins+=50;me.resources+=40;game.war=game.war.filter(x=>x!=enemyCode);
-        }else{
-            let lossSelf=Math.round(Math.random()*0.4*armySelf+7), lossEn=Math.round(Math.random()*0.5*armyEn+9);
-            me.army-=lossSelf;en.army-=lossEn;
-            showLog(`Боевые столкновения с ${countries[enemyCode].name}<br>Потери: свои -${lossSelf}, противник -${lossEn}`);
-            if(me.army<0)me.army=0;if(en.army<0)en.army=0;
-        }
-    }
-}
-function aiMove(){
-    for(let c in state){
-        if(c==game.me||game.conquered.includes(c)) continue;
-        let ai=state[c];
-        if(ai.factories<3&&ai.resources>20&&ai.coins>30){ai.factories++; ai.coins-=30; ai.resources-=20;}
-        if(ai.army<38&&ai.coins>28&&ai.resources>15){ai.army+=10; ai.coins-=28; ai.resources-=16;}
-        if(ai.tech<50&&ai.coins>41&&ai.resources>28){ ai.tech+=10; ai.coins-=40; ai.resources-=28; }
-        if(Math.random()<0.12&&ai.army>35){
-            let list=countries[c].neighbors;if(list.includes(game.me)){if(!game.war.includes(c)) game.war.push(c);}
-        }
-    }
-}
-// --- СТАРТ ---
-document.getElementById("startupForm").onsubmit=(e)=>{
-    e.preventDefault();
-    let c=document.getElementById("countryPick").value;
-    game.me=c;game.goal=document.getElementById("goalPick").value;state={};
-    for(let code in countries){
-        let s=Object.assign({},countries[code].start);
-        s.factories=1;s.techsUnlocked=[];s.techInProgress=null;s.conquered=[];s.ai=(code!=c);
-        state[code]=s;
-    }
-    for(let code in countries){ applyCountryBonuses(code, true);}
-    document.getElementById("startup").style.display="none";
-    document.getElementById("topbar").style.display="";
-    document.getElementById("bottomPanel").style.display="";
-    renderHexGrid();
-    showResources();
-    showLog(
-        `Ваша страна: <b>${countries[c].name}</b>.<br><small>Цель: <b>${
-        {"domination":"Глобальное господство","survive":"Выжить 20 ходов","economy":"Построить сильную экономику"}[game.goal]
-        }</b></small><br>Бонус: <i>${countries[c].bonus}</i><br>Стройте заводы для дохода, обучайте войска и создавайте технику для исследований!`,
-        null,true
-    );
-    setTimeout(()=>{ // скопируем фокус на крестик
-        let closer=document.getElementById("logcloser");if(closer) closer.focus();
-    },340);
+  }
+  // Доход города
+  let totalIncome = game.cities.reduce((sum,c)=>sum+c.income,0);
+  game.res.money+=totalIncome;
+  // Ход
+  processTech();
+  game.turn++;
+  game.month++;
+  if(game.month>=12){game.month=0;game.year++;}
+  game.log="Ход завершён! Доход: "+totalIncome+"💰";
+  renderGame();
+  saveGame();
 };
-initUI();
+// ----------------- INIT ---------------------
+resetMenu();
 </script>
 </body>
 </html>
