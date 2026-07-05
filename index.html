@@ -329,4 +329,219 @@ function initUI(){
         if(me.coins<costCoins||me.resources<costRes){
             showLog("Недостаточно ресурсов для производства техники.", techBtn);return;
         }
-        me.coins -= costCoins; me
+        me.coins -= costCoins; me.resources -= costRes; me.tech += added;
+        if(hasTech("tank1")){ me.army +=5; showLog(`Произведена техника (+${added}).<br>+5 армии за механизацию.`, techBtn);}
+        else { showLog(`Произведена техника (+${added}).<br>Техника нужна для исследований технологий.`, techBtn);}
+        showResources();
+    };
+    nextBtn.onclick=()=>{
+        nextBtn.classList.add('blink');
+        setTimeout(()=>{nextBtn.classList.remove('blink');},400);
+        nextTurn();
+        showLog(`Следующий ход начался – ход №${game.turn}`, nextBtn);
+    };
+    document.getElementById("btnTech").onclick=()=>{openTechPanel();};
+    document.getElementById("closeTech").onclick=()=>{document.getElementById("techPanel").style.display="none";};
+    document.getElementById("btnTrade").onclick=()=>{openTradePanel();};
+    document.getElementById("closeTrade").onclick=()=>{document.getElementById("tradePanel").style.display="none";};
+    document.getElementById("btnWar").onclick=()=>{openWarPanel();};
+    document.getElementById("closeWar").onclick=()=>{document.getElementById("warPanel").style.display="none";};
+}
+function hasTech(id){ return state[game.me].techsUnlocked.includes(id);}
+function openTechPanel(){
+    let me = state[game.me], html="";
+    techTree.forEach(tech=>{
+        let unlocked=me.techsUnlocked.includes(tech.id), inProg=(me.techInProgress==tech.id);
+        let locked=false;
+        if(!unlocked && !inProg){ let reqs=getRequirements(tech);locked=reqs.some(id=>!me.techsUnlocked.includes(id));}
+        html+=`<div class="tech-item${unlocked?' unlocked':''}${inProg?' in-progress':''}${locked?' locked':''}">
+ <span>${tech.title}</span>
+ <span>${unlocked?'🔓':'🔒'}<br/><small>${tech.desc}</small></span>`;
+        if(!unlocked && !inProg && !locked){ html+=`<button onclick="researchTech('${tech.id}')">Исследовать (${tech.cost} техники)</button>`;}
+        if(inProg) html+=`<span>Исследуется (${tech.cost} техники)</span>`;
+        html+="</div>";
+    });
+    document.getElementById("techTree").innerHTML=html;document.getElementById("techPanel").style.display="flex";
+}
+window.researchTech=function(id){
+    let me = state[game.me], tech = getTechById(id);
+    if(me.tech < tech.cost){ alert("Недостаточно техники"); return;}
+    me.tech -= tech.cost; me.techInProgress = id;
+    showLog(`Начато исследование: ${tech.title}.<br>Техника списана.`, document.getElementById("btnTech"));
+    openTechPanel();
+}
+function getRequirements(tech){
+    if(!techTree.find(t=>t.unlocks.includes(tech.id))) return [];
+    let arr=[];techTree.forEach(parent=>{ if(parent.unlocks.includes(tech.id)) arr.push(parent.id); });
+    return arr;
+}
+function openTradePanel(){
+    let html='';
+    for(let c in countries){
+        if(c==game.me||game.conquered.includes(c)||game.war.includes(c)) continue;
+        if(game.war.includes(c)) continue;
+        html+=`<div class="trade-country"><span><b>${countries[c].name}</b></span>
+        <button onclick="tradeWith('${c}')">Торговать</button></div>`;
+    }
+    if(!html) html="<div style='color:#aaa;text-align:center;'>Нет стран для торговли</div>";
+    document.getElementById("tradeList").innerHTML=html;
+    document.getElementById("tradePanel").style.display="flex";
+}
+window.tradeWith=function(cid){
+    let tradeTypes = [
+        { send:"coins", recv:"resources", label:"Обменять 15 монет на 18 ресурсов" },
+        { send:"resources", recv:"coins", label:"Обменять 20 ресурсов на 15 монет" }
+    ];
+    let buttons = tradeTypes.map((t,i)=>`<button onclick="makeTrade('${cid}',${i})">${t.label}</button>`).join("<br/>");
+    document.getElementById("tradeList").innerHTML =
+    `<div style="text-align:center;">
+     <b>${countries[cid].name}</b> выбран.<br><br>
+     ${buttons}<br><button onclick="openTradePanel()" style="margin-top:10px;">← Назад к списку</button>
+    </div>`;
+}
+window.makeTrade=function(cid, tradeType){
+    let me=state[game.me], other=state[cid];
+    let trade=[
+        {send:"coins",recv:"resources",sendA:15,recvA:18},
+        {send:"resources",recv:"coins",sendA:20,recvA:15}
+    ][tradeType];
+    if(me[trade.send]<trade.sendA){
+        alert("Недостаточно ресурсов для обмена!");openTradePanel();return;
+    }
+    me[trade.send]-=trade.sendA;me[trade.recv]+=trade.recvA;
+    other[trade.send]+=trade.sendA;
+    other[trade.recv]-=Math.min(other[trade.recv],trade.recvA);
+    document.getElementById("tradePanel").style.display="none";
+    showResources();
+    showLog("Обмен завершён.");
+}
+function openWarPanel(){
+    let html='';
+    for(let c in countries){
+        if(c==game.me||game.conquered.includes(c)) continue;
+        if(game.war.includes(c)) continue;
+        let canAttack=false;
+        if(countries[game.me].neighbors.includes(c)) canAttack=true;
+        if(countries[c].neighbors.length==0) canAttack=true;
+        if(canAttack){
+            html+=`<div class="war-country"><span><b>${countries[c].name}</b></span>
+            <button onclick="declareWar('${c}')">Атаковать</button></div>`;
+        }
+    }
+    if(!html) html="<div style='color:#aaa;text-align:center;'>Нет стран для атаки</div>";
+    document.getElementById("warList").innerHTML=html;
+    document.getElementById("warPanel").style.display="flex";
+}
+window.declareWar=function(cid){
+    game.war.push(cid);
+    document.getElementById("warPanel").style.display="none";
+    showLog("Вы объявили войну стране: "+countries[cid].name);
+    renderHexGrid();
+    showResources();
+}
+function nextTurn(){
+    aiMove();
+    for(let c in state){
+        if(game.conquered.includes(c)) continue;
+        let country = state[c];
+        if(!country.factories) country.factories=1;
+        let inc = 7*country.factories;
+        if(c==game.me && hasTech("industry2")) inc = Math.round(inc*1.5);
+        if(c=="france") country.coins+=6;
+        country.coins += inc;
+        country.resources += 9*country.factories;
+        if(c=="italy" && !game.war.includes("italy")) country.coins+=8;
+        if(c=="germany"&&game.turn%2===0){country.tech+=5;}
+    }
+    let me=state[game.me];
+    if(me.techInProgress){
+        me.techsUnlocked.push(me.techInProgress);
+        showLog(`Исследование завершено: ${getTechById(me.techInProgress).title}`, document.getElementById("btnTech"));
+        me.techInProgress=null;
+    }
+    processWar();
+    applyCountryBonuses(game.me);
+    if(checkVictoryOrDefeat()) return;
+    game.turn++;
+    if(game.goal=='survive' && game.turn>game.maxTurn) {
+        game.over=true; game.victory=true;
+        showLog("Поздравляем! Вы выжили 20 ходов и победили!");
+        return;
+    }
+    showResources();
+    renderHexGrid();
+}
+function checkVictoryOrDefeat(){
+    if(game.goal=="domination" && game.conquered.length>=5){
+        showLog("Глобальное господство! Все страны покорены.");
+        game.victory=true; game.over=true; return true;
+    }
+    if(game.goal=="economy" && state[game.me].coins>450){
+        showLog("Ваша экономика стала самой сильной! Победа.");
+        game.victory=true; game.over=true; return true;
+    }
+    if(state[game.me].army<=0){
+        showLog("Ваша страна захвачена. Игра окончена.");
+        game.victory=false; game.over=true; return true;
+    }
+    return false;
+}
+function processWar(){
+    let me=state[game.me];
+    for(let i=0;i<game.war.length;i++){
+        let enemyCode=game.war[i], en=state[enemyCode];
+        if(game.conquered.includes(enemyCode)) continue;
+        let armySelf=me.army+Math.floor(me.tech/7), armyEn=en.army+Math.floor(en.tech/7);
+        if(armySelf<=0){
+            showLog("Вы проиграли бой, армия уничтожена. Вы потерпели поражение!");
+            state[game.me].army=0;game.over=true;return;
+        }
+        if(armyEn<=0){
+            game.conquered.push(enemyCode);
+            showLog("Вы победили: "+countries[enemyCode].name+" захвачена!");
+            me.coins+=50;me.resources+=40;game.war=game.war.filter(x=>x!=enemyCode);
+        }else{
+            let lossSelf=Math.round(Math.random()*0.4*armySelf+7), lossEn=Math.round(Math.random()*0.5*armyEn+9);
+            me.army-=lossSelf;en.army-=lossEn;
+            showLog(`Боевые столкновения с ${countries[enemyCode].name}<br>Потери: свои -${lossSelf}, противник -${lossEn}`);
+            if(me.army<0)me.army=0;if(en.army<0)en.army=0;
+        }
+    }
+}
+function aiMove(){
+    for(let c in state){
+        if(c==game.me||game.conquered.includes(c)) continue;
+        let ai=state[c];
+        if(ai.factories<3&&ai.resources>20&&ai.coins>30){ai.factories++; ai.coins-=30; ai.resources-=20;}
+        if(ai.army<38&&ai.coins>28&&ai.resources>15){ai.army+=10; ai.coins-=28; ai.resources-=16;}
+        if(ai.tech<50&&ai.coins>41&&ai.resources>28){ ai.tech+=10; ai.coins-=40; ai.resources-=28; }
+        if(Math.random()<0.12&&ai.army>35){
+            let list=countries[c].neighbors;if(list.includes(game.me)){if(!game.war.includes(c)) game.war.push(c);}
+        }
+    }
+}
+document.getElementById("startupForm").onsubmit=(e)=>{
+    e.preventDefault();
+    let c=document.getElementById("countryPick").value;
+    game.me=c;game.goal=document.getElementById("goalPick").value;state={};
+    for(let code in countries){
+        let s=Object.assign({},countries[code].start);
+        s.factories=1;s.techsUnlocked=[];s.techInProgress=null;s.conquered=[];s.ai=(code!=c);
+        state[code]=s;
+    }
+    for(let code in countries){ applyCountryBonuses(code, true);}
+    document.getElementById("startup").style.display="none";
+    document.getElementById("topbar").style.display="";
+    document.getElementById("bottomPanel").style.display="";
+    renderHexGrid();
+    showResources();
+    showLog(
+        `Ваша страна: <b>${countries[c].name}</b>.<br><small>Цель: <b>${
+        {"domination":"Глобальное господство","survive":"Выжить 20 ходов","economy":"Построить сильную экономику"}[game.goal]
+        }</b></small><br>Бонус: <i>${countries[c].bonus}</i><br> Стройте заводы для дохода, обучайте войска и создавайте технику для исследований!`
+    );
+};
+initUI();
+</script>
+</body>
+</html>
