@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Grand Strategy 1939 Alpha 1</title>
+  <title>Grand Strategy 1939 Alpha 1.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {height:100%;margin:0;padding:0;background:#232834;color:#fff;font-family:system-ui,sans-serif;}
@@ -12,23 +12,25 @@
     .main {flex:1 1 auto;display:flex;flex-direction:row;align-items:stretch;justify-content:stretch;}
     .sidebar {width:56px;background:#222a32;display:flex;flex-direction:column;align-items:center;padding:9px 0 7px;gap:17px;font-size:1.5em;min-width:56px;}
     .midpanel {flex:1 1 auto;display:flex;flex-direction:column;align-items:stretch;}
-    .infopanel {width:220px;background:#232a38;display:flex;flex-direction:column;align-items:stretch;padding:7px 9px;}
+    .infopanel {width:244px;background:#232a38;display:flex;flex-direction:column;align-items:stretch;padding:7px 12px;}
     .month {font-size:1.05em;text-align:center; font-weight:bold;}
     .citylist {margin:0;margin-bottom:15px;}
-    .cityblock {background:#263348;padding:7px 4px 5px;border-radius:8px;margin-bottom:9px;}
+    .cityblock {background:#263348;padding:7px 4px 4px;border-radius:8px;margin-bottom:8px;}
     .cityblock .name {font-weight:bold;}
     .cityblock .spec {font-size:.96em;color:#aad;}
-    .cityblock .income {font-size:.98em;color:#eee;}
-    .cityblock .buildq {margin:3px 0;font-size:.95em;}
-    .cityblock .prodq {margin:3px 0;font-size:.95em;}
+    .cityblock .income {font-size:.97em;color:#e7eefd;}
+    .cityblock .buildq, .cityblock .prodq {margin:3px 0;font-size:.95em;}
     .cityblock .pop {font-size:.97em;color:#aaa;}
     .cityblock .garn {font-size:.97em;color:#c9a;}
     .queueitem {padding:2px 0;}
+    .build-progress {color:#dedc8b; font-size:.92em;}
+    .prod-progress {color:#8bdedc; font-size:.92em;}
+    .units-block {margin:5px 0 8px;padding:5px 8px 7px;background:#1f2432;border-radius:7px;}
     .bottompanel {width:100%;padding:13px 0 9px;background:#1b1d21;border-top:1px solid #24273d;text-align:center;}
     .btn {padding:7px 13px;border-radius:8px;background:#3c5c7a;color:#fff;border:none;font-size:1em;margin:0 7px;}
     .btn:active {background:#56aee1;}
-    .log {width:100%;min-height:42px;text-align:center;font-size:1.08em;color:#fec;background:#2a252e97;border-radius:7px;margin-top:4px;}
-    .startmenu,.settingsmenu {position:fixed;top:0;left:0;width:100vw;height:100vh;background:#192031e9;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    .log {width:100%;min-height:36px;text-align:center;font-size:1.03em;color:#fec;background:#2a252e7a;border-radius:7px;margin-top:4px;}
+    .startmenu,.settingsmenu {position:fixed;top:0;left:0;width:100vw;height:100vh;background:#192031ee;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
     .startmenu h1 {font-size:2.2em;}
     .startmenu label {display:block;margin:8px 0 6px;}
     .startmenu select {font-size:1em;padding:6px;border-radius:7px;background:#191d2e;color:#fff;border:none;}
@@ -45,7 +47,7 @@
 </head>
 <body>
 <div class="startmenu" id="startMenu">
-    <div class="ver">Alpha 1 (0.1)</div>
+    <div class="ver">Alpha 1.1</div>
     <h1>Grand Strategy 1939</h1>
     <button onclick="startNewGame()">Новая игра</button>
     <button onclick="continueGame()">Продолжить</button>
@@ -69,11 +71,8 @@
     <div class="sidebar">
         <button class="btn" title="Государство" onclick="openPanel('state')">🏛</button>
         <button class="btn" title="Города" onclick="openPanel('cities')">🏭</button>
-        <button class="btn" title="Армии" onclick="openPanel('armies')">⚔</button>
+        <button class="btn" title="Армии" onclick="openPanel('units')">⚔</button>
         <button class="btn" title="Исследования" onclick="openPanel('tech')">🔬</button>
-        <button class="btn" title="Дипломатия" onclick="openPanel('diplo')">🤝</button>
-        <button class="btn" title="События" onclick="openPanel('events')">📜</button>
-        <button class="btn" title="Статистика" onclick="openPanel('stats')">📊</button>
         <button class="btn" title="Настройки" onclick="openPanel('settings')">⚙</button>
     </div>
     <div class="midpanel" id="midPanel"></div>
@@ -83,46 +82,61 @@
     <button class="btn" id="btnEndTurn">Завершить ход</button>
 </div>
 <script>
-// СТРУКТУРА ДАННЫХ — модульная! 
-const GAME_VERSION = 'Alpha 1 (0.1)';
-const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-const countries = {
+// ==== КОНСТАНТЫ ====
+const GAME_VERSION = 'Alpha 1.1';
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+const BUILDINGS = [
+    {id:"civ_factory", name:"Гражданский завод", cost:30, time:2, effects:{income:8, buildSpeed:5}, desc:"+8 дохода, +5% к строительству"},
+    {id:"mil_factory", name:"Военный завод", cost:38, time:3, effects:{prodSpeed:10, allowMilitary:true}, desc:"+10% к производству, открывает военное производство"},
+    {id:"fortification", name:"Укрепления", cost:26, time:2, effects:{garrison:200, defense:4}, desc:"+200 гарнизона, +4 защиты"}
+];
+
+const UNITS = [
+    {id:"inf_div", name:"Пехотная дивизия", cost:15, time:2, req:null, effects:{}, desc:"—"},
+    {id:"tank_div", name:"Танковая дивизия", cost:23, time:3, req:"mech_doctrine", effects:{}, desc:"Требует 'Мехдивизии'"}
+];
+
+const TECHNOLOGIES = [
+    {id:"econ_reform", cat:"Экономика", name:"Экономические реформы", cost:22, duration:2, effects:{globalIncome:10}, desc:"+10% доходов всех городов"},
+    {id:"new_gear", cat:"Пехота", name:"Новое снаряжение", cost:16, duration:2, effects:{globalGarrison:10}, desc:"+10% ко всем гарнизонам"},
+    {id:"mech_doctrine", cat:"Танки", name:"Мехдивизии", cost:26, duration:3, effects:{unlockTank:true}, desc:"Открывает производство танков"}
+];
+
+const COUNTRY_DATA = {
   france: {
     name: "Франция", code: "france",
     cities: [
-      {name:"Париж",pop:3100000,income:34,garrison:500,special:"исследования, экономика"},
-      {name:"Лион",pop:500000,income:21,garrison:180,special:"универсальный"},
+      {name:"Париж",pop:3100000,income:28,garrison:500,special:"исследования, экономика"},
+      {name:"Лион",pop:500000,income:22,garrison:180,special:"универсальный"},
       {name:"Лилль",pop:220000,income:20,garrison:150,special:"промышленность"},
-      {name:"Марсель",pop:800000,income:22,garrison:200,special:"флот"},
-      {name:"Бордо",pop:270000,income:15,garrison:80,special:"логистика"}
+      {name:"Марсель",pop:800000,income:20,garrison:200,special:"флот"},
+      {name:"Бордо",pop:270000,income:16,garrison:80,special:"логистика"}
     ],
-    start: {money:120,materials:90,military:25,political:20},
-    armies:[],techs:[],ai:true
+    start: {money:110,materials:85,military:20,political:15},
+    ai:true
   },
   germany: {
     name: "Германия", code: "germany",
     cities: [
-      {name:"Берлин",pop:4100000,income:35,garrison:600,special:"столица"},
-      {name:"Мюнхен",pop:620000,income:28,garrison:210,special:"пехота"},
-      {name:"Гамбург",pop:1400000,income:27,garrison:220,special:"флот"},
-      {name:"Кёльн",pop:770000,income:24,garrison:140,special:"логистика"},
-      {name:"Франкфурт",pop:540000,income:20,garrison:120,special:"экономика"}
+      {name:"Берлин",pop:4100000,income:30,garrison:600,special:"столица"},
+      {name:"Мюнхен",pop:620000,income:25,garrison:210,special:"пехота"},
+      {name:"Гамбург",pop:1400000,income:23,garrison:220,special:"флот"},
+      {name:"Кёльн",pop:770000,income:20,garrison:140,special:"логистика"},
+      {name:"Франкфурт",pop:540000,income:18,garrison:120,special:"экономика"}
     ],
-    start: {money:130,materials:92,military:28,political:19},
-    armies:[],techs:[],ai:true
+    start: {money:115,materials:90,military:21,political:14},
+    ai:true
   }
-  // другие страны добавляются аналогично!
 };
-const techTree = [
-  {id:"econ1",cat:"Экономика",title:"Экономические реформы",desc:"+10% доход",cost:20,duration:2},
-  {id:"mil1",cat:"Пехота",title:"Новое снаряжение",desc:"+10% гарнизон",cost:18,duration:2},
-  {id:"tank1",cat:"Танки",title:"Мехдивизии",desc:"Открывает производство танков",cost:22,duration:3}
-];
-// ------------------ GAME STATE -----------------
+
+// ==== СОСТОЯНИЕ ИГРЫ ====
 let game = null;
 let menuState = 'main';
 let lastPanel = 'cities';
-// ------------------ MENU LOGIC -----------------
+let turnLog = [];
+
+// ==== МЕНЮ ====
 function startNewGame(){
   document.getElementById("startMenu").innerHTML=
     `<div class="ver">${GAME_VERSION}</div><h1>Grand Strategy 1939</h1>
@@ -159,7 +173,8 @@ function openPanel(panel){
   lastPanel = panel;
   renderMidPanel();
 }
-// ------------------ GAME START -----------------
+
+// ==== ЗАГРУЗКА/НОВАЯ ИГРА ====
 function launchGame(saved){
   document.getElementById("startMenu").style.display="none";
   document.getElementById("settingsMenu").style.display="none";
@@ -168,82 +183,98 @@ function launchGame(saved){
   document.getElementById("bottomPanel").style.display="";
   if(saved){
     game = JSON.parse(saved);
+    if(!game.units) game.units=[];
+    if(!game.researchEffects) game.researchEffects={};
+    if(!game.buildingsCounts) game.buildingsCounts={};
+    turnLog = [];
     showLog("Игра загружена.");
-  } else {
-    let country = document.getElementById("countrySelect").value;
-    let campaign = document.getElementById("campSelect").value;
-    let diff = document.getElementById("diffSelect").value;
-    game = {
-      country,
-      campaign,
-      diff,
-      turn:1,
-      year:1939,
-      month:0,
-      res: {...countries[country].start},
-      cities: countries[country].cities.map(c=>({
-        ...c,
-        buildQ:[],prodQ:[],buildBusy:null,prodBusy:null
-      })),
-      techsUnlocked:[],
-      techInProgress:null,
-      armies:[],
-      log:"Новая игра началась!"
-    };
-    saveGame();
+    renderGame();
+    return;
   }
+  let country = document.getElementById("countrySelect").value;
+  let campaign = document.getElementById("campSelect").value;
+  let diff = document.getElementById("diffSelect").value;
+  let citiesRaw = COUNTRY_DATA[country].cities;
+  game = {
+    country,
+    campaign,
+    diff,
+    turn:1,
+    year:1939,
+    month:0,
+    res: {...COUNTRY_DATA[country].start},
+    cities: citiesRaw.map(c=>({
+      ...c,
+      buildQ:[],prodQ:[],buildBusy:null,prodBusy:null,
+      buildings:[],
+      speedMod:{build:0,prod:0},
+      defense:0
+    })),
+    techsUnlocked:[],
+    techInProgress:null,
+    units:[],
+    researchEffects:{},
+    buildingsCounts:{},
+    log:"Новая игра началась!"
+  };
+  turnLog = [];
+  saveGame();
   renderGame();
 }
-// ----------------- SAVE --------------------------
+
+// ==== СОХРАНЕНИЕ ====
 function saveGame(){
   localStorage.setItem("gs1939save", JSON.stringify(game));
 }
-function showMenuLog(msg){
-  document.getElementById("startMenu").innerHTML+=`<div class="log">${msg}</div>`;
-}
-// ---------------- RENDERING ----------------------
+
+// ==== ОТРИСОВКА ====
 function renderGame(){
   document.getElementById("monthText").innerText=
-    months[game.month]+" "+game.year+", "+countries[game.country].name;
+    MONTHS[game.month]+" "+game.year+", "+COUNTRY_DATA[game.country].name;
   renderResPanel();
   renderMidPanel();
   renderInfoPanel();
-  showLog(game.log||'',true);
 }
+
 function renderResPanel(){
   let r=game.res;
   document.getElementById("resPanel").innerHTML=
     `💰 <b>${r.money}</b> | ⛏ <b>${r.materials}</b> | ⚔ <b>${r.military}</b> | 🏛 <b>${r.political}</b>`;
 }
+
 function renderMidPanel(){
   let el=document.getElementById("midPanel");
   switch(lastPanel){
     case 'cities': renderCitiesMid(el); break;
-    case 'state': el.innerHTML=`<div style='font-size:1.16em;padding:14px;'>Государство: ${countries[game.country].name}<br>Ресурсы: <br>💰${game.res.money} ⛏${game.res.materials} ⚔${game.res.military} 🏛${game.res.political}</div>`; break;
+    case 'state': el.innerHTML=`<div style='font-size:1.16em;padding:14px;'>Государство: ${COUNTRY_DATA[game.country].name}<br>Ресурсы: <br>💰${game.res.money} ⛏${game.res.materials} ⚔${game.res.military} 🏛${game.res.political}</div>`; break;
+    case 'units': renderUnitsBlock(el);break;
     case 'tech': renderTechMid(el); break;
-    case 'armies': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Армии: пока не реализовано</div>";break;
-    case 'diplo': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Дипломатия: пока не реализовано</div>";break;
-    case 'events': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>События: пока не реализовано</div>";break;
-    case 'stats': el.innerHTML="<div style='font-size:1.1em;padding:14px;'>Статистика: пока не реализовано</div>";break;
     case 'settings': openSettings(); break;
     default: renderCitiesMid(el);
   }
 }
+
 function renderCitiesMid(el){
   let html = "<h2 style='margin-top:5px;'>Города</h2><div class='citylist'>";
   game.cities.forEach((city,i)=>{
+    let buildQ = city.buildQ.map((q,j)=>`<span class="queueitem">${BUILDINGS.find(b=>b.id==q.id).name} (${q.time}м)</span>`).join(', ');
+    let prodQ = city.prodQ.map((q,j)=>`<span class="queueitem">${UNITS.find(u=>u.id==q.id).name} (${q.time}м)</span>`).join(', ');
+    let busystr = city.buildBusy?`<b>${BUILDINGS.find(b=>b.id==city.buildBusy.id).name} <span class='build-progress'>[${city.buildBusy.left} мес]</span></b>`:"—";
+    let busyprod = city.prodBusy?`<b>${UNITS.find(u=>u.id==city.prodBusy.id).name} <span class='prod-progress'>[${city.prodBusy.left} мес]</span></b>`:"—";
+    let buildingsDone = city.buildings.map(id=>BUILDINGS.find(b=>b.id==id).name).join(', ') || '—';
     html+=`<div class='cityblock'>
-      <span class="name">${city.name}</span> <span class="pop">👥${city.pop}</span><br>
-      <span class="income">💰${city.income}/мес</span> <span class="garn">⚔${city.garrison} гарнизон</span>
-      <br><span class="spec">${city.special}</span>
+      <span class="name">${city.name}</span> <span class="pop">👥${city.pop}</span>
+      <div class="income">💰${city.income}/мес, ⚔Гарнизон: ${city.garrison}${city.defense?`, Защ: ${city.defense}`:""}</div>
+      <span class="spec">${city.special}</span><br>
+      <div>Постр: ${buildingsDone}</div>
       <div class="buildq">
-      Стройка: ${city.buildBusy?`<b>${city.buildBusy.name} (${city.buildBusy.left}м)</b>`:"—"}
-      <br>Очередь: ${city.buildQ.map(q=>`<span class="queueitem">${q.name} (${q.time}м)</span>`).join(', ')}
+      Стройка: ${busystr}
+      <br>Очередь: ${buildQ||'—'}
       <br><button class="btn" onclick="addBuild(${i})">+Стройка</button>
       </div>
       <div class="prodq">
-      Производство: ${city.prodBusy?`<b>${city.prodBusy.name} (${city.prodBusy.left}м)</b>`:"—"}
-      <br>Очередь: ${city.prodQ.map(q=>`<span class="queueitem">${q.name} (${q.time}м)</span>`).join(', ')}
+      Производство: ${busyprod}
+      <br>Очередь: ${prodQ||'—'}
       <br><button class="btn" onclick="addProd(${i})">+Производство</button>
       </div>
     </div>`;
@@ -251,147 +282,235 @@ function renderCitiesMid(el){
   html+="</div>";
   el.innerHTML=html;
 }
-function renderTechMid(el){
-  let me = game.techsUnlocked, inPr = game.techInProgress;
-  let html = "<h2>Технологии</h2><div>";
-  techTree.forEach(tech=>{
-    let unlocked = me.includes(tech.id), inprog=(inPr&&inPr.id==tech.id);
-    html+=`<div style="margin:4px 0;padding:7px;border-radius:7px;background:#193;color:${unlocked?'#ffe':'#fff'};">
-      <b>${tech.title}</b> <span style="opacity:.7;font-size:.97em;">(${tech.cat})</span><br>
-      <small>${tech.desc}</small><br>
-      ${unlocked?'<span>Открыта</span>':inprog?`<span>В процессе (${inPr.left}м)</span>`:`<button class="btn" onclick="startTech('${tech.id}')">Исследовать (${tech.cost}⚔, ${tech.duration}мес)</button>`}
-      </div>`;
-  });
-  html+="</div>";
+
+function renderUnitsBlock(el){
+  let html = "<h2>Произведённые части</h2>";
+  if(!game.units.length) html+="<div style='color:#aaa'>Ещё не произведено ни одной части.</div>";
+  else {
+    html += "<div class='units-block'>";
+    game.units.forEach((u,idx)=>html+=`<div>• ${UNITS.find(x=>x.id==u.id).name} (произв. в ${u.city})</div>`);
+    html +="</div>";
+  }
   el.innerHTML = html;
 }
+
+function renderTechMid(el){
+  let me = game.techsUnlocked, inPr = game.techInProgress;
+  let html = "<h2>Технологии</h2>";
+  TECHNOLOGIES.forEach(tech=>{
+    let unlocked = me.includes(tech.id), inprog=(inPr&&inPr.id==tech.id);
+    html+=`<div style="margin:5px 0;padding:7px 8px;border-radius:7px;background:#193;color:${unlocked?'#ffe':'#fff'};">
+      <b>${tech.name}</b> <span style="opacity:.7;font-size:.97em;">(${tech.cat})</span><br>
+      <small>${tech.desc}</small><br>
+      ${unlocked?'<span>Открыта</span>':inprog?`<span>В процессе [${inPr.left} мес]</span>`:`<button class="btn" onclick="startTech('${tech.id}')">Исследовать (${tech.cost}⚔, ${tech.duration}м)</button>`}
+      </div>`;
+  });
+  el.innerHTML = html;
+}
+
 function renderInfoPanel(){
   let el=document.getElementById('infoPanel');
-  el.innerHTML=
-    `<div style="font-size:1.16em;margin-bottom:8px;">Информация<br><b>${countries[game.country].name}</b></div>
+  let currentTech = game.techInProgress?`${TECHNOLOGIES.find(t=>t.id==game.techInProgress.id).name} [${game.techInProgress.left} мес]`:'—';
+  let stats = `
+    <div style="font-size:1.17em;margin-bottom:8px;">Информация<br><b>${COUNTRY_DATA[game.country].name}</b></div>
     <div>Ход: <b>${game.turn}</b></div>
-    <div>Месяц: <b>${months[game.month]} ${game.year}</b></div>
+    <div>Месяц: <b>${MONTHS[game.month]} ${game.year}</b></div>
     <div>Сложность: <b>${game.diff}</b></div>
-    <div>Текущая технология: ${game.techInProgress?game.techInProgress.title+' ('+game.techInProgress.left+'мес)':'—'}</div>
-    <div>Кампания: <b>${game.campaign}</b></div>`;
+    <div>Техника: ${currentTech}</div>
+    <div>Кампания: <b>${game.campaign}</b></div>
+    <hr style="border:0;border-top:1px solid #262f45;">
+    <b>Журнал хода</b><br>
+    ${turnLog.slice(-7).map(e=>"<div class='log'>"+e+"</div>").join("")}
+  `;
+  el.innerHTML = stats;
 }
-function showLog(msg,panel){
-  let l=document.getElementById('midPanel');
-  if(panel) l.innerHTML+='<div class="log">'+msg+'</div>';
-  else {
-    let logs=document.querySelectorAll(".log");
-    for(let lg of logs) lg.remove();
-    let el=document.getElementById('mainPanel');
-    let logDiv=document.createElement("div");logDiv.className="log";logDiv.innerHTML=msg;
-    el.appendChild(logDiv);
-    setTimeout(()=>{logDiv.remove();},3500);
-  }
+
+function showLog(msg){
+  turnLog.push(msg);
+  renderInfoPanel();
 }
-// ----------------- BUILD / PRODUCE -----------------
-const buildOptions = [
-  {name:"Гражданский завод",cost:22,time:2,effect:"💰+8/мес"},
-  {name:"Военный завод",cost:28,time:3,effect:"⚔+4/мес"},
-  {name:"Укрепления",cost:13,time:2,effect:"Защита"}
-];
-const prodOptions = [
-  {name:"Пехотная дивизия",cost:12,time:2,need:"—"},
-  {name:"Танковая дивизия",cost:21,time:3,need:"tank1"},
-  {name:"Артиллерия",cost:14,time:2,need:"mil1"}
-];
+
+// ==== BUILD — стройка ====
 function addBuild(i){
   let city=game.cities[i];
-  let optList = buildOptions.map((b,j)=>
-    `<button class="btn" onclick="chooseBuild(${i},${j})">${b.name} (${b.cost}⛏, ${b.time}м)</button>`
-  ).join('<br>')
-  showLog(`<b>Выберите объект для строительства в ${city.name}:</b><br>${optList}`,true);
+  let variants = BUILDINGS.map((b,j)=>
+    `<button class="btn" onclick="chooseBuild(${i},'${b.id}')">${b.name} (${b.cost}⛏, ${b.time}м)</button> <small>${b.desc}</small>`
+  ).join('<br>');
+  showLog(`<b>${city.name}: что строить?</b> ${variants}`);
 }
-function chooseBuild(i,j){
-  let city=game.cities[i], opt=buildOptions[j];
-  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!',true);return;}
+
+function chooseBuild(i,bid){
+  let city=game.cities[i], opt=BUILDINGS.find(b=>b.id==bid);
+  if(city.buildQ.length>=3){showLog('Очередь строительства переполнена!');return;}
+  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!');return;}
   game.res.materials-=opt.cost;
-  city.buildQ.push({name:opt.name,time:opt.time,left:opt.time,effect:opt.effect});
-  showLog('Стройка добавлена.',true);renderGame();
-  saveGame();
+  city.buildQ.push({id:opt.id,time:opt.time,left:opt.time});
+  showLog(`${city.name}: стройка "${opt.name}" добавлена в очередь.`);
+  renderGame(); saveGame();
 }
+
+// ==== PROD — производство ====
 function addProd(i){
   let city=game.cities[i];
-  let optList = prodOptions.map((b,j)=>
-    b.need&&(!game.techsUnlocked.includes(b.need))?'':`<button class="btn" onclick="chooseProd(${i},${j})">${b.name} (${b.cost}⛏, ${b.time}м)</button>`
+  let militaryFactory = city.buildings.includes('mil_factory');
+  let unlockedTank = !!game.techsUnlocked.find(tid=>tid=="mech_doctrine") || !!game.researchEffects.unlockTank;  
+  let variants = UNITS.filter(u=>{
+    if(u.id=='tank_div' && !militaryFactory) return false;
+    if(u.req && !(unlockedTank)) return false;
+    return true;
+  }).map((u,j)=>
+    `<button class="btn" onclick="chooseProd(${i},'${u.id}')">${u.name} (${u.cost}⛏, ${u.time}м)</button>`
   ).join('<br>');
-  showLog(`<b>Выберите тип войск для производства в ${city.name}:</b><br>${optList||'Нет вариантов'}<br>`,true);
+  if(!variants) { showLog("Нет вариантов для производства в этом городе.");return;}
+  showLog(`<b>${city.name}: что производить?</b> ${variants}`);
 }
-function chooseProd(i,j){
-  let city=game.cities[i], opt=prodOptions[j];
-  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!',true);return;}
+
+function chooseProd(i,uid){
+  let city=game.cities[i], opt=UNITS.find(u=>u.id==uid);
+  if(city.prodQ.length>=4){showLog('Очередь производства переполнена!');return;}
+  if(game.res.materials<opt.cost){showLog('Недостаточно материалов!');return;}
   game.res.materials-=opt.cost;
-  city.prodQ.push({name:opt.name,time:opt.time,left:opt.time});
-  showLog('Производство добавлено.',true);renderGame();
-  saveGame();
+  city.prodQ.push({id:opt.id,time:opt.time,left:opt.time});
+  showLog(`${city.name}: "${opt.name}" добавлено в очередь производства.`);
+  renderGame(); saveGame();
 }
-// -------------------- TECH ---------------------------
+
+// ==== TECH — наука ====
 function startTech(id){
-  let tech = techTree.find(t=>t.id==id);
-  if(game.res.military<tech.cost){showLog('Недостаточно военных очков.',true);return;}
+  if(game.techInProgress){showLog("Исследование уже ведется!");return;}
+  let tech = TECHNOLOGIES.find(t=>t.id==id);
+  if(game.res.military<tech.cost){showLog('Недостаточно военных очков.');return;}
   game.res.military-=tech.cost;
-  game.techInProgress = {id:tech.id,title:tech.title,left:tech.duration};
-  showLog('Исследование началось: '+tech.title,true);renderGame();
-  saveGame();
+  game.techInProgress = {id:tech.id,name:tech.name,left:tech.duration,effects:tech.effects};
+  showLog('Исследование началось: '+tech.name);
+  renderGame(); saveGame();
 }
-function processTech(){
+
+// ==== ПРОЦЕСС ХОДА ====
+document.getElementById("btnEndTurn").onclick=()=>{
+  let turnInfo = [];
+  // Стройка
+  game.cities.forEach(city=>{
+    if(!city.buildBusy && city.buildQ.length>0){
+      city.buildBusy = city.buildQ.shift();
+    }
+    if(city.buildBusy){
+      city.buildBusy.left--;
+      if(city.buildBusy.left<=0){
+        let building = BUILDINGS.find(b=>b.id==city.buildBusy.id);
+        // применить эффект сразу
+        applyBuildingEffect(city, building.effects);
+        city.buildings.push(building.id);
+        game.buildingsCounts[building.id] = (game.buildingsCounts[building.id]||0)+1;
+        turnInfo.push(`${city.name} завершил строительство: ${building.name}.`);
+        let efftxt = effectString(building.effects);
+        if(efftxt) turnInfo.push(`Эффект: ${efftxt}`);
+        city.buildBusy=null;
+      }
+    }
+    if(!city.buildBusy&&city.buildQ.length>0) city.buildBusy = city.buildQ.shift();
+    // Производство
+    if(!city.prodBusy && city.prodQ.length>0){
+      city.prodBusy = city.prodQ.shift();
+    }
+    if(city.prodBusy){
+      city.prodBusy.left--;
+      if(city.prodBusy.left<=0){
+        let unit = UNITS.find(u=>u.id==city.prodBusy.id);
+        game.units.push({id:unit.id,city:city.name});
+        turnInfo.push(`${city.name} завершил производство: ${unit.name}!`);
+        city.prodBusy=null;
+      }
+    }
+    if(!city.prodBusy&&city.prodQ.length>0) city.prodBusy = city.prodQ.shift();
+  });
+
+  // Доход с учетом науки и зданий
+  let totalIncome = game.cities.reduce((sum,c)=>sum+getCityIncome(c),0);
+  game.res.money+=Math.round(totalIncome);
+  let incomesList = game.cities.map(c=>`${c.name}: +${getCityIncome(c)}`).join("; ");
+  turnInfo.push(`Общий доход: +${totalIncome} (${incomesList})`);
+
+  // Исследования
   if(game.techInProgress){
     game.techInProgress.left--;
+    let tech = TECHNOLOGIES.find(t=>t.id==game.techInProgress.id);
     if(game.techInProgress.left<=0){
-      game.techsUnlocked.push(game.techInProgress.id);
-      showLog('Открыта технология: '+game.techInProgress.title,true);
+      game.techInProgress.left = 0;
+      game.techsUnlocked.push(tech.id);
+      applyResearchEffect(tech.effects);
+      turnInfo.push(`Исследование завершено: ${tech.name}. Эффекты: ${effectString(tech.effects)}`);
       game.techInProgress=null;
+    }else{
+      turnInfo.push(`Исследование "${tech.name}" продвинулось (осталось ${game.techInProgress.left} мес)`);
     }
   }
-}
-// ------------- END TURN ------------------
-document.getElementById("btnEndTurn").onclick=()=>{
-  for(let c of game.cities){
-    // Строительство
-    if(!c.buildBusy && c.buildQ.length>0){
-      c.buildBusy = c.buildQ.shift();
-    }
-    if(c.buildBusy){
-      c.buildBusy.left--;
-      if(c.buildBusy.left<=0){
-        showLog(c.name+": завершена стройка "+c.buildBusy.name,true);
-        if(c.buildBusy.effect && c.buildBusy.effect.indexOf("💰")!=-1){
-          let plus=parseInt(c.buildBusy.effect.match(/(\+[\d]+)/)?c.buildBusy.effect.match(/(\+[\d]+)/)[1]:8);
-          c.income+=plus;
-        }
-        c.buildBusy=null;
-      }
-    }
-    // Производство
-    if(!c.prodBusy && c.prodQ.length>0){
-      c.prodBusy = c.prodQ.shift();
-    }
-    if(c.prodBusy){
-      c.prodBusy.left--;
-      if(c.prodBusy.left<=0){
-        showLog(c.name+": произведена "+c.prodBusy.name,true);
-        // TODO: army add logic
-        c.prodBusy=null;
-      }
-    }
-  }
-  // Доход города
-  let totalIncome = game.cities.reduce((sum,c)=>sum+c.income,0);
-  game.res.money+=totalIncome;
-  // Ход
-  processTech();
+
+  // След. месяц/год
   game.turn++;
   game.month++;
   if(game.month>=12){game.month=0;game.year++;}
-  game.log="Ход завершён! Доход: "+totalIncome+"💰";
+
+  // ИТОГ
+  turnLog.push(`${MONTHS[game.month-1<0?11:game.month-1]}: `+turnInfo.join("<br>"));
+  if(turnLog.length>20) turnLog = turnLog.slice(-20);
+
   renderGame();
   saveGame();
 };
-// ----------------- INIT ---------------------
+// ==== МОДИФИКАТОРЫ ====
+function applyBuildingEffect(city, eff){
+  if(eff.income) city.income += eff.income;
+  if(eff.garrison) city.garrison += eff.garrison;
+  if(eff.buildSpeed) city.speedMod.build += eff.buildSpeed;
+  if(eff.prodSpeed) city.speedMod.prod += eff.prodSpeed;
+  if(eff.defense) city.defense += eff.defense;
+}
+
+function applyResearchEffect(eff){
+  // глобальные эффекты
+  for(let k in eff){
+    if(k==='globalIncome'){
+      game.researchEffects.globalIncome = (game.researchEffects.globalIncome||0) + eff.globalIncome;
+    }
+    if(k==='globalGarrison'){
+      game.researchEffects.globalGarrison=(game.researchEffects.globalGarrison||0)+eff.globalGarrison;
+    }
+    if(k==='unlockTank'){
+      game.researchEffects.unlockTank = true;
+    }
+  }
+}
+
+function getCityIncome(city){
+  let inc = city.income;
+  if(game.researchEffects.globalIncome)
+      inc=Math.round(inc*(1+game.researchEffects.globalIncome/100));
+  return inc;
+}
+
+// ==== УТИЛИТЫ ====
+function effectString(eff){
+  let arr=[];
+  if(eff.income) arr.push("Доход +"+eff.income);
+  if(eff.buildSpeed) arr.push("Строит быстрее на "+eff.buildSpeed+"%");
+  if(eff.prodSpeed) arr.push("Производство быстрее на "+eff.prodSpeed+"%");
+  if(eff.garrison) arr.push("Гарнизон +"+eff.garrison);
+  if(eff.defense) arr.push("Защита +"+eff.defense);
+  if(eff.allowMilitary) arr.push("Военные заводы активны");
+  if(eff.unlockTank) arr.push("Можно строить танки");
+  if(eff.globalIncome) arr.push("Все доходы +"+eff.globalIncome+"%");
+  if(eff.globalGarrison) arr.push("Все гарнизоны +"+eff.globalGarrison+"%");
+  return arr.join(", ");
+}
+
+function showMenuLog(msg){
+  document.getElementById("startMenu").innerHTML+=`<div class="log">${msg}</div>`;
+}
+
+// ==== ЗАПУСК ====
 resetMenu();
+
 </script>
 </body>
 </html>
